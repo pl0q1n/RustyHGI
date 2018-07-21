@@ -1,0 +1,12 @@
+[package]
+name = "HGI"
+version = "0.1.0"
+authors = ["pl0q1n <pl0q1n@gmail.com>"]
+
+[dependencies]
+image = "0.19.0"
+serde = "1.0.68"
+brotli = "2.5.0"
+divans = "0.0.1"
+clap = "2.32.0"
+bit-vec = "0.5.0"
