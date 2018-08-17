@@ -20,7 +20,6 @@ pub enum Interpolator {
 pub struct PositionMap {
     positions: BitVec,
     width: u32,
-    height: u32,
 }
 
 impl PositionMap {
@@ -28,7 +27,6 @@ impl PositionMap {
         PositionMap {
             positions: BitVec::from_elem((width * height) as usize, false),
             width,
-            height,
         }
     }
 

@@ -1,4 +1,3 @@
-use bit_vec::BitVec;
 use image::{GrayImage, Luma};
 use std::iter::repeat;
 use utils::{is_on_prev_lvl, Metadata, PositionMap, PredictMap};
@@ -132,10 +131,9 @@ impl Encoder for EncoderGrayscale {
         while ind >= 1 {
             let iter = (0..width)
                 .step_by(ind)
-                .into_iter()
                 .flat_map(move |x| (0..height).step_by(ind).zip(repeat(x)));
 
-            for (x, y) in iter {
+            for (y, x) in iter {
                 if !positions.get_val(x, y) {
                     let (post_inter_value, predicted_value) = {
                         let mut curr_level = &predictions[grid_depth - 1];
