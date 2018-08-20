@@ -40,7 +40,8 @@ impl Decoder for DecoderGrayscale {
                         data: [input[grid_depth][grid_ind]],
                     },
                 );
-                predictions[grid_depth].insert((x as usize, y as usize), input[grid_depth][grid_ind]);
+                predictions[grid_depth]
+                    .insert((x as usize, y as usize), input[grid_depth][grid_ind]);
                 grid_ind += 1;
                 positions.set_val(x, y);
             }
@@ -70,8 +71,9 @@ impl Decoder for DecoderGrayscale {
                             input[grid_depth][grid_ind],
                         );
                         let predicted_value = get_predicted_val(values);
-                        let post_inter_value =
-                            ((input[grid_depth][grid_ind] as u16 + predicted_value as u16) / 2) as u8;
+                        let post_inter_value = ((input[grid_depth][grid_ind] as u16
+                            + predicted_value as u16)
+                            / 2) as u8;
                         post_inter_value
                     };
                     img.put_pixel(
@@ -82,8 +84,8 @@ impl Decoder for DecoderGrayscale {
                         },
                     );
                     predictions[grid_depth].insert((x as usize, y as usize), post_inter_value);
+                    grid_ind += 1;
                 }
-                grid_ind += 1;
                 positions.set_val(x, y);
             }
             ind /= 2;
