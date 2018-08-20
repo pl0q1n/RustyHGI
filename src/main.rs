@@ -10,6 +10,8 @@ mod decoder;
 use utils::*;
 use encoder::Encoder;
 use encoder::EncoderGrayscale;
+use decoder::Decoder;
+use decoder::DecoderGrayscale;
 
 fn main() {
     let matches = clap_app!(primify =>
@@ -47,5 +49,12 @@ fn main() {
     println!("Grid level {}", grid_level);
 
     let mut encoder = EncoderGrayscale {};
-    encoder.encode(metadata, img);
+    let mut grid = encoder.encode(metadata.clone(), img);
+
+    println!("grid size: {}", grid.len());
+
+    let mut decoder = DecoderGrayscale {};
+    let img = decoder.decode(metadata, grid);
+
+    img.save("test.png").unwrap();
 }
