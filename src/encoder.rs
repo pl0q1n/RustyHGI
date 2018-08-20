@@ -46,7 +46,6 @@ impl Encoder for EncoderGrayscale {
         while ind >= 1 {
             let iter = (0..width)
                 .step_by(ind)
-                .into_iter()
                 .flat_map(move |x| (0..height).step_by(ind).zip(repeat(x)));
 
             for (y, x) in iter {
