@@ -42,6 +42,7 @@ impl Decoder for DecoderGrayscale {
                 );
                 predictions[grid_depth].insert((x as usize, y as usize), input[grid_depth][grid_ind]);
                 grid_ind += 1;
+                positions.set_val(x, y);
             }
         }
 
@@ -49,6 +50,7 @@ impl Decoder for DecoderGrayscale {
         grid_depth += 1;
 
         while ind >= 1 {
+            grid_ind = 0;
             let iter = (0..width)
                 .step_by(ind)
                 .into_iter()
@@ -81,8 +83,8 @@ impl Decoder for DecoderGrayscale {
                     );
                     predictions[grid_depth].insert((x as usize, y as usize), post_inter_value);
                 }
-                positions.set_val(x, y);
                 grid_ind += 1;
+                positions.set_val(x, y);
             }
             ind /= 2;
             grid_depth += 1;

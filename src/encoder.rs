@@ -37,6 +37,7 @@ impl Encoder for EncoderGrayscale {
                 grid[grid_depth].push(input.get_pixel(x, y).data[0]);
                 predictions[grid_depth]
                     .insert((x as usize, y as usize), input.get_pixel(x, y).data[0]);
+                positions.set_val(x, y);
             }
         }
 
