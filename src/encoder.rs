@@ -1,4 +1,5 @@
 use image::{GrayImage, Luma};
+use std::cmp;
 use std::iter::repeat;
 use utils::{
     get_interp_pixels, get_predicted_val, is_on_prev_lvl, CrossedValues, GridU8, Metadata,
@@ -63,13 +64,15 @@ impl Encoder for EncoderGrayscale {
                             255,
                         );
                         let predicted_value = get_predicted_val(values);
-                        let post_inter_value =
-                            input.get_pixel(x, y).data[0].saturating_sub(predicted_value);
+                        let post_inter_value = 255 - (
+                            cmp::max(input.get_pixel(x, y).data[0], predicted_value)
+                                - cmp::min(input.get_pixel(x, y).data[0], predicted_value));
+                        //input.get_pixel(x, y).data[0].wrapping_sub(predicted_value);
                         (post_inter_value, predicted_value)
                     };
-                    // Quantization with precision = 15;
-                    let quanted_postinter_value = ((2 * 15 + 1)
-                        * ((post_inter_value as f64 + 15.0) / (2.0 * 15.0 + 1.0)).floor() as usize
+                    // Quantization with precision = 10;
+                    let quanted_postinter_value = ((2 * 10 + 1)
+                        * ((post_inter_value as f64 + 10.0) / (2.0 * 10.0 + 1.0)).floor() as usize
                         % 256) as u8;
 
                     input.put_pixel(
@@ -77,6 +80,7 @@ impl Encoder for EncoderGrayscale {
                         y,
                         Luma {
                             data: [quanted_postinter_value.saturating_add(predicted_value)],
+                            //data: [quanted_postinter_value].
                         },
                     );
                     grid[grid_depth].push(quanted_postinter_value);
