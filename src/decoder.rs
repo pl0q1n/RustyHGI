@@ -11,14 +11,14 @@ pub trait Decoder {
     type Input;
     type Output;
 
-    fn decode(&mut self, metadata: Metadata, input: Self::Input) -> Self::Output;
+    fn decode(&mut self, metadata: &Metadata, input: &Self::Input) -> Self::Output;
 }
 
 impl Decoder for DecoderGrayscale {
     type Input = GridU8;
     type Output = GrayImage;
 
-    fn decode(&mut self, metadata: Metadata, input: Self::Input) -> Self::Output {
+    fn decode(&mut self, metadata: &Metadata, input: &Self::Input) -> Self::Output {
         let (width, height) = metadata.dimension;
         let mut grid_ind = 0;
         let mut img = ImageBuffer::new(width, height);

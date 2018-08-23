@@ -6,6 +6,7 @@ pub type PredictMap = HashMap<CoordHolder, u8>;
 pub type GridU8 = Vec<Vec<u8>>;
 
 #[derive(Clone)]
+#[derive(Serialize, Deserialize)]
 pub enum Quantizator {
     LoselessCompression,
     LowCompression,
@@ -14,6 +15,7 @@ pub enum Quantizator {
 }
 
 #[derive(Clone)]
+#[derive(Serialize, Deserialize)]
 pub enum Interpolator {
     Crossed,
     Line,
@@ -34,14 +36,15 @@ impl PositionMap {
     }
 
     pub fn get_val(&self, x: u32, y: u32) -> bool {
-        return self.positions.get((x * self.width + y) as usize).unwrap();
+        return self.positions.get((y * self.width + x) as usize).unwrap();
     }
     pub fn set_val(&mut self, x: u32, y: u32) {
-        self.positions.set((x * self.width + y) as usize, true);
+        self.positions.set((y * self.width + x) as usize, true);
     }
 }
 
 #[derive(Clone)]
+#[derive(Serialize, Deserialize)]
 pub struct Metadata {
     pub quantizator: Quantizator,
     pub interpolator: Interpolator,

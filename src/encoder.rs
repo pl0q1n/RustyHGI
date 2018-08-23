@@ -71,8 +71,8 @@ impl Encoder for EncoderGrayscale {
                         (post_inter_value, predicted_value)
                     };
                     // Quantization with precision = 10;
-                    let quanted_postinter_value = ((2 * 10 + 1)
-                        * ((post_inter_value as f64 + 10.0) / (2.0 * 10.0 + 1.0)).floor() as usize
+                    let quanted_postinter_value = ((2 * 30 + 1)
+                        * ((post_inter_value as f64 + 30.0) / (2.0 * 30.0 + 1.0)).floor() as usize
                         % 256) as u8;
 
                     input.put_pixel(
