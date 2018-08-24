@@ -20,7 +20,6 @@ use decoder::DecoderGrayscale;
 use encoder::Encoder;
 use encoder::EncoderGrayscale;
 use std::fs::File;
-use std::io::Write;
 use utils::*;
 
 fn main() {
@@ -34,27 +33,24 @@ fn main() {
     ).get_matches();
 
     let image_path = matches.value_of("INPUT").unwrap();
-    let res = image::open(&image_path);
-    if let Err(e) = res {
-        println!("An error occurred: {}", e);
-        panic!();
-    }
-    let img = res.unwrap().to_luma();
+    let img = image::open(&image_path).unwrap().to_luma();
     let grid_level = matches
         .value_of("LEVEL")
         .map(|l| l.parse())
         .unwrap_or(Ok(4usize))
         .unwrap();
+
     let quantizator = match matches
         .value_of("QUANTIZATOR")
         .map(|l| l.parse())
         .unwrap_or(Ok(2))
-        .unwrap() {     
-            0 => Quantizator::LoselessCompression,
-            1 => Quantizator::LowCompression,
-            2 => Quantizator::MediumCompression,
-            3 | _ => Quantizator::HighCompression,
-        };
+        .unwrap()
+    {
+        0 => Quantizator::LoselessCompression,
+        1 => Quantizator::LowCompression,
+        2 => Quantizator::MediumCompression,
+        3 | _ => Quantizator::HighCompression,
+    };
     let interpolator = Interpolator::Crossed;
     let dimension = img.dimensions();
     let metadata = Metadata {
@@ -68,7 +64,7 @@ fn main() {
     println!("Grid level {}", grid_level);
 
     let mut encoder = EncoderGrayscale {};
-    let mut grid = encoder.encode(metadata.clone(), img);
+    let grid = encoder.encode(metadata.clone(), img);
 
     println!("grid size: {}", grid.len());
     {

@@ -2,8 +2,7 @@ use image::{GrayImage, Luma};
 use std::cmp;
 use std::iter::repeat;
 use utils::{
-    get_interp_pixels, get_predicted_val, is_on_prev_lvl, CrossedValues, GridU8, Metadata,
-    PositionMap, PredictMap, Quantizator
+    get_interp_pixels, get_predicted_val, GridU8, Metadata, PositionMap, PredictMap, Quantizator,
 };
 
 fn quantizate_value(value: u8, quantizator: &Quantizator) -> u8 {

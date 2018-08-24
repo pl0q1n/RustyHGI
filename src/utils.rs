@@ -5,8 +5,7 @@ pub type CoordHolder = (usize, usize);
 pub type PredictMap = HashMap<CoordHolder, u8>;
 pub type GridU8 = Vec<Vec<u8>>;
 
-#[derive(Clone)]
-#[derive(Serialize, Deserialize)]
+#[derive(Clone, Serialize, Deserialize)]
 pub enum Quantizator {
     LoselessCompression,
     LowCompression,
@@ -14,8 +13,7 @@ pub enum Quantizator {
     HighCompression,
 }
 
-#[derive(Clone)]
-#[derive(Serialize, Deserialize)]
+#[derive(Clone, Serialize, Deserialize)]
 pub enum Interpolator {
     Crossed,
     Line,
@@ -43,8 +41,7 @@ impl PositionMap {
     }
 }
 
-#[derive(Clone)]
-#[derive(Serialize, Deserialize)]
+#[derive(Clone, Serialize, Deserialize)]
 pub struct Metadata {
     pub quantizator: Quantizator,
     pub interpolator: Interpolator,

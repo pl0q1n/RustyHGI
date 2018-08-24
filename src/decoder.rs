@@ -1,9 +1,6 @@
 use image::{GrayImage, ImageBuffer, Luma};
 use std::iter::repeat;
-use utils::{
-    get_interp_pixels, get_predicted_val, is_on_prev_lvl, CrossedValues, GridU8, Metadata,
-    PositionMap, PredictMap,
-};
+use utils::{get_interp_pixels, get_predicted_val, GridU8, Metadata, PositionMap, PredictMap};
 
 pub struct DecoderGrayscale {}
 
