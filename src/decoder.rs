@@ -1,6 +1,6 @@
-use image::{GrayImage, ImageBuffer, Luma};
+use image::{GrayImage, ImageBuffer};
 use std::iter::repeat;
-use utils::{get_interp_pixels, get_predicted_val, GridU8, Metadata, PositionMap, PredictMap};
+use utils::{average, get_interp_pixels, gray, GridU8, Metadata, PositionMap, PredictMap};
 
 pub struct DecoderGrayscale {}
 
@@ -28,19 +28,13 @@ impl Decoder for DecoderGrayscale {
 
         predictions.resize(depth + 1 as usize, PredictMap::new());
 
-        for x in (0..width).step_by(ind) {
-            for y in (0..height).step_by(ind) {
-                img.put_pixel(
-                    x,
-                    y,
-                    Luma {
-                        data: [input[grid_depth][grid_ind]],
-                    },
-                );
-                predictions[grid_depth]
-                    .insert((x as usize, y as usize), input[grid_depth][grid_ind]);
+        for line in (0..height).step_by(ind) {
+            for column in (0..width).step_by(ind) {
+                let value = input[grid_depth][grid_ind];
+                img.put_pixel(column, line, gray(value));
+                predictions[grid_depth].insert((column as usize, line as usize), value);
                 grid_ind += 1;
-                positions.set_val(x, y);
+                positions.set_val(column, line);
             }
         }
 
@@ -49,41 +43,35 @@ impl Decoder for DecoderGrayscale {
 
         while ind >= 1 {
             grid_ind = 0;
-            let iter = (0..width)
+            let iter = (0..height)
                 .step_by(ind)
-                .into_iter()
-                .flat_map(move |x| (0..height).step_by(ind).zip(repeat(x)));
+                .flat_map(move |line| repeat(line).zip((0..width).step_by(ind)));
 
-            for (y, x) in iter {
-                if !positions.get_val(x, y) {
+            for (line, column) in iter {
+                if !positions.get_val(column, line) {
                     let post_inter_value = {
                         let mut curr_level = &predictions[grid_depth - 1];
+                        let value = input[grid_depth][grid_ind];
 
-                        let values = get_interp_pixels(
+                        let prediction = get_interp_pixels(
                             depth,
                             grid_depth,
                             (width, height),
-                            (x, y),
+                            (column, line),
                             curr_level,
-                            input[grid_depth][grid_ind],
-                        );
-                        let predicted_value = get_predicted_val(values);
-                        let post_inter_value = ((input[grid_depth][grid_ind] as u16
-                            + predicted_value as u16)
-                            / 2) as u8;
-                        post_inter_value
+                            value,
+                        ).prediction();
+
+                        average(value, prediction) as u8
                     };
-                    img.put_pixel(
-                        x,
-                        y,
-                        Luma {
-                            data: [post_inter_value],
-                        },
-                    );
-                    predictions[grid_depth].insert((x as usize, y as usize), post_inter_value);
+
+                    let pixel = gray(post_inter_value);
+                    img.put_pixel(column, line, pixel);
+                    predictions[grid_depth].insert((column as usize, line as usize), post_inter_value);
                     grid_ind += 1;
+
+                    positions.set_val(column, line);
                 }
-                positions.set_val(x, y);
             }
             ind /= 2;
             grid_depth += 1;

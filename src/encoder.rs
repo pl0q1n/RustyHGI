@@ -1,7 +1,7 @@
-use image::{GrayImage, Luma};
+use image::GrayImage;
 use std::cmp;
 use std::iter::repeat;
-use utils::{get_interp_pixels, get_predicted_val, GridU8, Metadata, PositionMap, PredictMap};
+use utils::{get_interp_pixels, gray, GridU8, Metadata, PositionMap, PredictMap};
 
 pub struct EncoderGrayscale {}
 
@@ -30,12 +30,14 @@ impl Encoder for EncoderGrayscale {
         let depth = grid.len() - 1;
         predictions.resize(depth + 1 as usize, PredictMap::new());
 
-        for x in (0..width).step_by(ind) {
-            for y in (0..height).step_by(ind) {
-                grid[grid_depth].push(input.get_pixel(x, y).data[0]);
+        for line in (0..height).step_by(ind) {
+            for column in (0..width).step_by(ind) {
+                let pix_val = input.get_pixel(column, line).data[0];
+
+                grid[grid_depth].push(pix_val);
                 predictions[grid_depth]
-                    .insert((x as usize, y as usize), input.get_pixel(x, y).data[0]);
-                positions.set_val(x, y);
+                    .insert((column as usize, line as usize), pix_val);
+                positions.set_val(column, line);
             }
         }
 
@@ -43,44 +45,40 @@ impl Encoder for EncoderGrayscale {
         grid_depth += 1;
 
         while ind >= 1 {
-            let iter = (0..width)
+            let iter = (0..height)
                 .step_by(ind)
-                .flat_map(move |x| (0..height).step_by(ind).zip(repeat(x)));
+                .flat_map(move |y| repeat(y).zip((0..width).step_by(ind)));
 
-            for (y, x) in iter {
-                if !positions.get_val(x, y) {
+            for (line, column) in iter {
+                if !positions.get_val(column, line) {
                     let (post_inter_value, predicted_value) = {
                         let mut curr_level = &predictions[grid_depth - 1];
 
-                        let values = get_interp_pixels(
+                        let prediction = get_interp_pixels(
                             depth,
                             grid_depth,
                             (width, height),
-                            (x, y),
+                            (column, line),
                             curr_level,
                             255,
-                        );
-                        let predicted_value = get_predicted_val(values);
+                        ).prediction();
+
+                        let pix_value = input.get_pixel(column, line).data[0];
                         let post_inter_value =
-                            255 - (cmp::max(input.get_pixel(x, y).data[0], predicted_value)
-                                - cmp::min(input.get_pixel(x, y).data[0], predicted_value));
+                            255 - (cmp::max(pix_value, prediction)
+                                - cmp::min(pix_value, prediction));
                         //input.get_pixel(x, y).data[0].wrapping_sub(predicted_value);
-                        (post_inter_value, predicted_value)
+                        (post_inter_value, prediction)
                     };
                     let quanted_postinter_value = metadata.quantizator.quantize(post_inter_value);
 
-                    input.put_pixel(
-                        x,
-                        y,
-                        Luma {
-                            data: [quanted_postinter_value.saturating_add(predicted_value)],
-                            //data: [quanted_postinter_value].
-                        },
-                    );
+                    let pixel = gray(quanted_postinter_value.saturating_add(predicted_value));
+                    input.put_pixel(column, line, pixel);
                     grid[grid_depth].push(quanted_postinter_value);
-                    predictions[grid_depth].insert((x as usize, y as usize), post_inter_value);
+                    predictions[grid_depth].insert((column as usize, line as usize), post_inter_value);
+                
+                    positions.set_val(column, line);
                 }
-                positions.set_val(x, y);
             }
             ind /= 2;
             grid_depth += 1;
