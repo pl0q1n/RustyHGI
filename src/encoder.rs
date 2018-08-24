@@ -1,20 +1,7 @@
 use image::{GrayImage, Luma};
 use std::cmp;
 use std::iter::repeat;
-use utils::{
-    get_interp_pixels, get_predicted_val, GridU8, Metadata, PositionMap, PredictMap, Quantizator,
-};
-
-fn quantizate_value(value: u8, quantizator: &Quantizator) -> u8 {
-    let max_error = match *quantizator {
-        Quantizator::LoselessCompression => 0.0,
-        Quantizator::LowCompression => 10.0,
-        Quantizator::MediumCompression => 20.0,
-        Quantizator::HighCompression => 30.0,
-    };
-    ((2 * max_error as usize + 1)
-        * ((value as f64 + max_error) / (2.0 * max_error + 1.0)).floor() as usize % 256) as u8
-}
+use utils::{get_interp_pixels, get_predicted_val, GridU8, Metadata, PositionMap, PredictMap};
 
 pub struct EncoderGrayscale {}
 
@@ -22,15 +9,15 @@ pub trait Encoder {
     type Input;
     type Output;
 
-    fn encode(&mut self, metadata: Metadata, input: Self::Input) -> Self::Output;
+    fn encode(&mut self, metadata: &Metadata, input: Self::Input) -> Self::Output;
 }
 
 impl Encoder for EncoderGrayscale {
     type Input = GrayImage;
     type Output = GridU8;
 
-    fn encode(&mut self, metadata: Metadata, mut input: Self::Input) -> Self::Output {
-        let (width, height) = metadata.dimension;
+    fn encode(&mut self, metadata: &Metadata, mut input: Self::Input) -> Self::Output {
+        let (width, height) = metadata.dimensions;
         let mut grid = GridU8::with_capacity(metadata.scale_level + 1);
         grid.resize(metadata.scale_level + 1, Vec::new());
         let mut grid_depth = 0usize;
@@ -80,8 +67,7 @@ impl Encoder for EncoderGrayscale {
                         //input.get_pixel(x, y).data[0].wrapping_sub(predicted_value);
                         (post_inter_value, predicted_value)
                     };
-                    let quanted_postinter_value =
-                        quantizate_value(post_inter_value, &metadata.quantizator);
+                    let quanted_postinter_value = metadata.quantizator.quantize(post_inter_value);
 
                     input.put_pixel(
                         x,

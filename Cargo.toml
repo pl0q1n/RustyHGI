@@ -1,17 +1,19 @@
 [package]
+authors = ["pl0q1n <pl0q1n@gmail.com>"]
 name = "hgi"
 version = "0.1.0"
-authors = ["pl0q1n <pl0q1n@gmail.com>"]
 
 [dependencies]
+bincode = "1.0.1"
+bit-vec = "0.5.0"
+byteorder = "1.2.4"
+clap = "*"
+flate2 = "1.0.2"
 image = "0.19.0"
 serde = "1.0.68"
-clap = "2.32.0"
-bit-vec = "0.5.0"
 serde_derive = "1.0.73"
-bincode = "1.0.1"
-byteorder = "1.2.4"
-flate2 = "1.0.2"
+structopt = "*"
 
+[profile]
 [profile.release]
 lto = true
