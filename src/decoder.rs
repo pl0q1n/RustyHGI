@@ -1,9 +1,6 @@
 use image::{GrayImage, ImageBuffer, Luma};
 use std::iter::repeat;
-use utils::{
-    get_interp_pixels, get_predicted_val, is_on_prev_lvl, CrossedValues, GridU8, Metadata,
-    PositionMap, PredictMap,
-};
+use utils::{get_interp_pixels, get_predicted_val, GridU8, Metadata, PositionMap, PredictMap};
 
 pub struct DecoderGrayscale {}
 
@@ -19,7 +16,7 @@ impl Decoder for DecoderGrayscale {
     type Output = GrayImage;
 
     fn decode(&mut self, metadata: &Metadata, input: &Self::Input) -> Self::Output {
-        let (width, height) = metadata.dimension;
+        let (width, height) = metadata.dimensions;
         let mut grid_ind = 0;
         let mut img = ImageBuffer::new(width, height);
         let mut grid_depth = 0usize;

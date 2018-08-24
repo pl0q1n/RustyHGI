@@ -7,80 +7,67 @@ extern crate serde;
 #[macro_use]
 extern crate clap;
 #[macro_use]
+extern crate structopt;
+#[macro_use]
 extern crate serde_derive;
+
+use std::error::Error;
+use std::fs::File;
+
+use structopt::StructOpt;
 
 mod archive;
 mod decoder;
 mod encoder;
+mod options;
 mod utils;
 
 use archive::Archive;
-use decoder::Decoder;
-use decoder::DecoderGrayscale;
-use encoder::Encoder;
-use encoder::EncoderGrayscale;
-use std::fs::File;
-use std::io::Write;
-use utils::*;
+use decoder::{Decoder, DecoderGrayscale};
+use encoder::{Encoder, EncoderGrayscale};
+use options::{DecodeOpts, EncodeOpts, Opts};
+use utils::{GridU8, Interpolator, Metadata};
 
-fn main() {
-    let matches = clap_app!(primify =>
-        (version: "0.1.0")
-        (author: "pl0q1n & 0xd34d10cc")
-        (about: "Actually trying to compress the image")
-        (@arg INPUT:       -i --input       +takes_value +required "Input file name")
-        (@arg LEVEL:       -l --level       +takes_value           "Scale level of grid")
-        (@arg QUANTIZATOR: -q --quantizator +takes_value           "Type of Quantizator")
-    ).get_matches();
+fn encode(opts: &EncodeOpts) -> Result<(), Box<Error>> {
+    let image = image::open(&opts.io.input)?.to_luma();
+    let dimensions = image.dimensions();
 
-    let image_path = matches.value_of("INPUT").unwrap();
-    let res = image::open(&image_path);
-    if let Err(e) = res {
-        println!("An error occurred: {}", e);
-        panic!();
-    }
-    let img = res.unwrap().to_luma();
-    let grid_level = matches
-        .value_of("LEVEL")
-        .map(|l| l.parse())
-        .unwrap_or(Ok(4usize))
-        .unwrap();
-    let quantizator = match matches
-        .value_of("QUANTIZATOR")
-        .map(|l| l.parse())
-        .unwrap_or(Ok(2))
-        .unwrap() {     
-            0 => Quantizator::LoselessCompression,
-            1 => Quantizator::LowCompression,
-            2 => Quantizator::MediumCompression,
-            3 | _ => Quantizator::HighCompression,
-        };
-    let interpolator = Interpolator::Crossed;
-    let dimension = img.dimensions();
     let metadata = Metadata {
-        quantizator,
-        interpolator,
-        dimension,
-        scale_level: grid_level,
+        quantizator: opts.quantizator,
+        interpolator: Interpolator::Crossed,
+        dimensions,
+        scale_level: opts.level,
     };
-    println!("image path {}", image_path);
-    println!("dimensions {:?}", dimension);
-    println!("Grid level {}", grid_level);
 
     let mut encoder = EncoderGrayscale {};
-    let mut grid = encoder.encode(metadata.clone(), img);
+    let grid = encoder.encode(&metadata, image);
+    println!("Grid size: {}", grid.len());
 
-    println!("grid size: {}", grid.len());
-    {
-        let arch = Archive { metadata, grid };
-        let mut file = File::create("compressed_not").unwrap();
-        arch.serialize_to_writer(&mut file).unwrap();
-    }
+    let archive = Archive { metadata, grid };
+    let mut output = File::create(&opts.io.output)?;
+    archive.serialize_to_writer(&mut output)?;
 
-    let mut file = File::open("compressed_not").unwrap();
-    let archive: Archive<GridU8> = Archive::deserialize_from_reader(&mut file).unwrap();
+    Ok(())
+}
+
+fn decode(opts: &DecodeOpts) -> Result<(), Box<Error>> {
+    let mut input = File::open(&opts.io.input)?;
+    let archive = Archive::<GridU8>::deserialize_from_reader(&mut input)?;
     let mut decoder = DecoderGrayscale {};
-    let img = decoder.decode(&archive.metadata, &archive.grid);
+    let image = decoder.decode(&archive.metadata, &archive.grid);
+    image.save(&opts.io.output)?;
+    Ok(())
+}
 
-    img.save("test.png").unwrap();
+fn run() -> Result<(), Box<Error>> {
+    match Opts::from_args() {
+        Opts::Encode(opts) => encode(&opts),
+        Opts::Decode(opts) => decode(&opts),
+    }
+}
+
+fn main() {
+    if let Err(e) = run() {
+        eprintln!("An error occured: {}", e);
+    }
 }

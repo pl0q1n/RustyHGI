@@ -5,17 +5,32 @@ pub type CoordHolder = (usize, usize);
 pub type PredictMap = HashMap<CoordHolder, u8>;
 pub type GridU8 = Vec<Vec<u8>>;
 
-#[derive(Clone)]
-#[derive(Serialize, Deserialize)]
+arg_enum! {
+#[derive(Clone, Copy, Serialize, Deserialize, Debug)]
 pub enum Quantizator {
-    LoselessCompression,
-    LowCompression,
-    MediumCompression,
-    HighCompression,
+    Loseless,
+    Low,
+    Medium,
+    High,
+}
 }
 
-#[derive(Clone)]
-#[derive(Serialize, Deserialize)]
+impl Quantizator {
+    pub fn quantize(&self, value: u8) -> u8 {
+        let max_error = match self {
+            Quantizator::Loseless => 0.0,
+            Quantizator::Low => 10.0,
+            Quantizator::Medium => 20.0,
+            Quantizator::High => 30.0,
+        };
+
+        ((2 * max_error as usize + 1)
+            * ((value as f64 + max_error) / (2.0 * max_error + 1.0)).floor() as usize
+            % 256) as u8
+    }
+}
+
+#[derive(Clone, Serialize, Deserialize, Debug)]
 pub enum Interpolator {
     Crossed,
     Line,
@@ -43,12 +58,11 @@ impl PositionMap {
     }
 }
 
-#[derive(Clone)]
-#[derive(Serialize, Deserialize)]
+#[derive(Clone, Serialize, Deserialize, Debug)]
 pub struct Metadata {
     pub quantizator: Quantizator,
     pub interpolator: Interpolator,
-    pub dimension: (u32, u32),
+    pub dimensions: (u32, u32),
     pub scale_level: usize,
 }
 
