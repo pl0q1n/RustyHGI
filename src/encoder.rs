@@ -3,8 +3,19 @@ use std::cmp;
 use std::iter::repeat;
 use utils::{
     get_interp_pixels, get_predicted_val, is_on_prev_lvl, CrossedValues, GridU8, Metadata,
-    PositionMap, PredictMap,
+    PositionMap, PredictMap, Quantizator
 };
+
+fn quantizate_value(value: u8, quantizator: &Quantizator) -> u8 {
+    let max_error = match *quantizator {
+        Quantizator::LoselessCompression => 0.0,
+        Quantizator::LowCompression => 10.0,
+        Quantizator::MediumCompression => 20.0,
+        Quantizator::HighCompression => 30.0,
+    };
+    ((2 * max_error as usize + 1)
+        * ((value as f64 + max_error) / (2.0 * max_error + 1.0)).floor() as usize % 256) as u8
+}
 
 pub struct EncoderGrayscale {}
 
@@ -64,16 +75,14 @@ impl Encoder for EncoderGrayscale {
                             255,
                         );
                         let predicted_value = get_predicted_val(values);
-                        let post_inter_value = 255 - (
-                            cmp::max(input.get_pixel(x, y).data[0], predicted_value)
+                        let post_inter_value =
+                            255 - (cmp::max(input.get_pixel(x, y).data[0], predicted_value)
                                 - cmp::min(input.get_pixel(x, y).data[0], predicted_value));
                         //input.get_pixel(x, y).data[0].wrapping_sub(predicted_value);
                         (post_inter_value, predicted_value)
                     };
-                    // Quantization with precision = 10;
-                    let quanted_postinter_value = ((2 * 30 + 1)
-                        * ((post_inter_value as f64 + 30.0) / (2.0 * 30.0 + 1.0)).floor() as usize
-                        % 256) as u8;
+                    let quanted_postinter_value =
+                        quantizate_value(post_inter_value, &metadata.quantizator);
 
                     input.put_pixel(
                         x,
