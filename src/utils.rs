@@ -1,9 +1,16 @@
+use image::Luma;
 use bit_vec::BitVec;
 use std::collections::HashMap;
 
 pub type CoordHolder = (usize, usize);
 pub type PredictMap = HashMap<CoordHolder, u8>;
 pub type GridU8 = Vec<Vec<u8>>;
+
+pub fn gray(value: u8) -> Luma<u8> {
+    Luma {
+        data: [value]
+    }
+}
 
 arg_enum! {
 #[derive(Clone, Copy, Serialize, Deserialize, Debug)]
@@ -50,11 +57,12 @@ impl PositionMap {
         }
     }
 
-    pub fn get_val(&self, x: u32, y: u32) -> bool {
-        return self.positions.get((y * self.width + x) as usize).unwrap();
+    pub fn get_val(&self, column: u32, line: u32) -> bool {
+        self.positions.get((line * self.width + column) as usize).unwrap()
     }
-    pub fn set_val(&mut self, x: u32, y: u32) {
-        self.positions.set((y * self.width + x) as usize, true);
+
+    pub fn set_val(&mut self, column: u32, line: u32) {
+        self.positions.set((line * self.width + column) as usize, true);
     }
 }
 
@@ -66,20 +74,17 @@ pub struct Metadata {
     pub scale_level: usize,
 }
 
-// Check that coord is processed on previous level
-pub fn is_on_prev_lvl(total_depth: usize, current_depth: usize, coord: u32) -> bool {
-    let ind = 2usize.pow((total_depth - current_depth) as u32);
-    let curr_lvl_check = coord % (ind as u32 * 2) == 0;
-    if !curr_lvl_check {
-        return curr_lvl_check;
+pub fn is_on_prev_lvl(total_levels: usize, level: usize, x: u32) -> bool {
+    if x == 0 {
+        return level == 0;
     }
-    for lvl in 0..current_depth - 1 {
-        let curr_step = 2u32.pow((total_depth - lvl) as u32);
-        if coord % curr_step == 0 {
-            return false;
-        }
-    }
-    return true;
+
+    let previous = level - 1;
+    x.trailing_zeros() == (total_levels as u32 - previous as u32)
+}
+
+pub fn average(x: u8, y: u8) -> usize {
+    (x as usize + y as usize + 1) / 2
 }
 
 #[derive(Default)]
@@ -88,6 +93,19 @@ pub struct CrossedValues {
     pub right_top: u8,
     pub left_bot: u8,
     pub right_bot: u8,
+}
+
+impl CrossedValues {
+    pub fn prediction(&self) -> u8 {
+        let left  = average(self.left_top,  self.left_bot);
+        let right = average(self.right_bot, self.right_top);
+        let top   = average(self.right_top, self.left_top);
+        let bot   = average(self.right_bot, self.left_bot);
+
+        let average = (left + right + top + bot + 1) / 4;
+
+        average as u8
+    }
 }
 
 pub fn get_interp_pixels(
@@ -152,17 +170,4 @@ pub fn get_interp_pixels(
         values.right_bot = get_pix_val(x_bot_cord, y_right_cord);
     }
     return values;
-}
-
-fn get_average(lhs: u8, rhs: u8) -> u8 {
-    ((lhs as usize + rhs as usize + 1) / 2) as u8
-}
-
-pub fn get_predicted_val(values: CrossedValues) -> u8 {
-    let left_inter = get_average(values.left_top, values.left_bot);
-    let right_inter = get_average(values.right_bot, values.right_top);
-    let top_inter = get_average(values.right_top, values.left_top);
-    let bot_inter = get_average(values.right_top, values.left_bot);
-
-    ((left_inter as u16 + right_inter as u16 + top_inter as u16 + bot_inter as u16 + 1) / 4) as u8
 }
