@@ -35,8 +35,7 @@ impl Encoder for EncoderGrayscale {
                 let pix_val = input.get_pixel(column, line).data[0];
 
                 grid[grid_depth].push(pix_val);
-                predictions[grid_depth]
-                    .insert((column as usize, line as usize), pix_val);
+                predictions[grid_depth].insert((column as usize, line as usize), pix_val);
                 positions.set_val(column, line);
             }
         }
@@ -64,9 +63,8 @@ impl Encoder for EncoderGrayscale {
                         ).prediction();
 
                         let pix_value = input.get_pixel(column, line).data[0];
-                        let post_inter_value =
-                            255 - (cmp::max(pix_value, prediction)
-                                - cmp::min(pix_value, prediction));
+                        let post_inter_value = 255
+                            - (cmp::max(pix_value, prediction) - cmp::min(pix_value, prediction));
                         //input.get_pixel(x, y).data[0].wrapping_sub(predicted_value);
                         (post_inter_value, prediction)
                     };
@@ -75,8 +73,9 @@ impl Encoder for EncoderGrayscale {
                     let pixel = gray(quanted_postinter_value.saturating_add(predicted_value));
                     input.put_pixel(column, line, pixel);
                     grid[grid_depth].push(quanted_postinter_value);
-                    predictions[grid_depth].insert((column as usize, line as usize), post_inter_value);
-                
+                    predictions[grid_depth]
+                        .insert((column as usize, line as usize), post_inter_value);
+
                     positions.set_val(column, line);
                 }
             }
@@ -85,5 +84,52 @@ impl Encoder for EncoderGrayscale {
             println!("{}", grid_depth);
         }
         return grid;
+    }
+}
+
+//////////////////
+
+#[cfg(test)]
+mod tests {
+
+    use super::*;
+    use utils::{Quantizator, Interpolator};
+    use decoder::{DecoderGrayscale, Decoder};
+    use image;
+
+    #[test]
+    fn losseless_compression_test() {
+        let metadata = Metadata {
+            quantizator: Quantizator::Loseless,
+            interpolator: Interpolator::Crossed,
+            dimensions: (8, 8),
+            scale_level: 4,
+        };
+
+        let mut imgbuf = image::ImageBuffer::new(8, 8);
+        
+        // fill image with random pixels
+        for (x, y, pixel) in imgbuf.enumerate_pixels_mut() {
+            *pixel = image::Luma([(x*y) as u8]);
+        }
+
+        for line in imgbuf.chunks(imgbuf.width() as usize) {
+                println!("{:?}", line);
+        }
+
+        let mut encoder = EncoderGrayscale {};
+        let grid = encoder.encode(&metadata, imgbuf.clone());
+        
+        let mut decoder = DecoderGrayscale {};
+        let image = decoder.decode(&metadata, &grid);
+        
+        for line in image.chunks(image.width() as usize) {
+                println!("{:?}", line);
+        }
+
+        for (x, y, pixel) in imgbuf.enumerate_pixels() {
+            assert_eq!(*pixel, image[(x, y)]);
+        }
+        assert_eq!(2 + 2, 4);
     }
 }

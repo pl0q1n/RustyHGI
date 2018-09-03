@@ -25,7 +25,7 @@ pub enum Quantizator {
 impl Quantizator {
     pub fn quantize(&self, value: u8) -> u8 {
         let max_error = match self {
-            Quantizator::Loseless => 0.0,
+            Quantizator::Loseless => return value,
             Quantizator::Low => 10.0,
             Quantizator::Medium => 20.0,
             Quantizator::High => 30.0,
