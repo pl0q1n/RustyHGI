@@ -47,7 +47,7 @@ impl Encoder for EncoderGrayscale {
             let iter = (0..height)
                 .step_by(ind)
                 .flat_map(move |y| repeat(y).zip((0..width).step_by(ind)));
-
+            println!("{}", grid_depth);
             for (line, column) in iter {
                 if !positions.get_val(column, line) {
                     let (post_inter_value, predicted_value) = {
@@ -59,12 +59,11 @@ impl Encoder for EncoderGrayscale {
                             (width, height),
                             (column, line),
                             curr_level,
-                            255,
+                            0,
                         ).prediction();
 
                         let pix_value = input.get_pixel(column, line).data[0];
-                        let post_inter_value = 255
-                            - (cmp::max(pix_value, prediction) - cmp::min(pix_value, prediction));
+                        let post_inter_value = (pix_value as i32 - prediction as i32).abs() as u8;
                         //input.get_pixel(x, y).data[0].wrapping_sub(predicted_value);
                         (post_inter_value, prediction)
                     };
@@ -74,14 +73,13 @@ impl Encoder for EncoderGrayscale {
                     input.put_pixel(column, line, pixel);
                     grid[grid_depth].push(quanted_postinter_value);
                     predictions[grid_depth]
-                        .insert((column as usize, line as usize), post_inter_value);
+                        .insert((column as usize, line as usize), quanted_postinter_value);
 
                     positions.set_val(column, line);
                 }
             }
             ind /= 2;
             grid_depth += 1;
-            println!("{}", grid_depth);
         }
         return grid;
     }
@@ -93,9 +91,9 @@ impl Encoder for EncoderGrayscale {
 mod tests {
 
     use super::*;
-    use utils::{Quantizator, Interpolator};
-    use decoder::{DecoderGrayscale, Decoder};
+    use decoder::{Decoder, DecoderGrayscale};
     use image;
+    use utils::{Interpolator, Quantizator};
 
     #[test]
     fn losseless_compression_test() {
@@ -103,33 +101,32 @@ mod tests {
             quantizator: Quantizator::Loseless,
             interpolator: Interpolator::Crossed,
             dimensions: (8, 8),
-            scale_level: 4,
+            scale_level: 2,
         };
 
         let mut imgbuf = image::ImageBuffer::new(8, 8);
-        
+
         // fill image with random pixels
         for (x, y, pixel) in imgbuf.enumerate_pixels_mut() {
-            *pixel = image::Luma([(x*y) as u8]);
+            *pixel = image::Luma([(x * y) as u8]);
         }
 
         for line in imgbuf.chunks(imgbuf.width() as usize) {
-                println!("{:?}", line);
+            println!("{:?}", line);
         }
 
         let mut encoder = EncoderGrayscale {};
         let grid = encoder.encode(&metadata, imgbuf.clone());
-        
+
         let mut decoder = DecoderGrayscale {};
         let image = decoder.decode(&metadata, &grid);
-        
+
         for line in image.chunks(image.width() as usize) {
-                println!("{:?}", line);
+            println!("{:?}", line);
         }
 
         for (x, y, pixel) in imgbuf.enumerate_pixels() {
-            assert_eq!(*pixel, image[(x, y)]);
+            assert!((pixel.data[0] as i32 - image[(x, y)].data[0] as i32).abs() < 10);
         }
-        assert_eq!(2 + 2, 4);
     }
 }

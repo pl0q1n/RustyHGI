@@ -1,5 +1,5 @@
-use image::Luma;
 use bit_vec::BitVec;
+use image::Luma;
 use std::collections::HashMap;
 
 pub type CoordHolder = (usize, usize);
@@ -7,9 +7,7 @@ pub type PredictMap = HashMap<CoordHolder, u8>;
 pub type GridU8 = Vec<Vec<u8>>;
 
 pub fn gray(value: u8) -> Luma<u8> {
-    Luma {
-        data: [value]
-    }
+    Luma { data: [value] }
 }
 
 arg_enum! {
@@ -58,11 +56,14 @@ impl PositionMap {
     }
 
     pub fn get_val(&self, column: u32, line: u32) -> bool {
-        self.positions.get((line * self.width + column) as usize).unwrap()
+        self.positions
+            .get((line * self.width + column) as usize)
+            .unwrap()
     }
 
     pub fn set_val(&mut self, column: u32, line: u32) {
-        self.positions.set((line * self.width + column) as usize, true);
+        self.positions
+            .set((line * self.width + column) as usize, true);
     }
 }
 
@@ -76,7 +77,7 @@ pub struct Metadata {
 
 pub fn is_on_prev_lvl(total_levels: usize, level: usize, x: u32) -> bool {
     if x == 0 {
-        return level == 0;
+        return level == 1;
     }
 
     let previous = level - 1;
@@ -97,10 +98,10 @@ pub struct CrossedValues {
 
 impl CrossedValues {
     pub fn prediction(&self) -> u8 {
-        let left  = average(self.left_top,  self.left_bot);
+        let left = average(self.left_top, self.left_bot);
         let right = average(self.right_bot, self.right_top);
-        let top   = average(self.right_top, self.left_top);
-        let bot   = average(self.right_bot, self.left_bot);
+        let top = average(self.right_top, self.left_top);
+        let bot = average(self.right_bot, self.left_bot);
 
         let average = (left + right + top + bot + 1) / 4;
 
