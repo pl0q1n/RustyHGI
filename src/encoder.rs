@@ -20,42 +20,42 @@ impl Encoder for EncoderGrayscale {
         let (width, height) = metadata.dimensions;
         let mut grid = GridU8::with_capacity(metadata.scale_level + 1);
         grid.resize(metadata.scale_level + 1, Vec::new());
-        let mut grid_depth = 0usize;
-        let mut ind = 2usize.pow(grid.len() as u32 - 1);
 
+        let levels = metadata.scale_level;
         let mut positions = PositionMap::new(width, height);
-
         let mut predictions = Vec::<PredictMap>::new();
 
         let depth = grid.len() - 1;
         predictions.resize(depth + 1 as usize, PredictMap::new());
 
-        for line in (0..height).step_by(ind) {
-            for column in (0..width).step_by(ind) {
+        let level = 0;
+        let step = 1 << levels;
+        for line in (0..height).step_by(step) {
+            for column in (0..width).step_by(1 << levels) {
                 let pix_val = input.get_pixel(column, line).data[0];
 
-                grid[grid_depth].push(pix_val);
-                predictions[grid_depth].insert((column as usize, line as usize), pix_val);
+                grid[level].push(pix_val);
+                predictions[level].insert((column as usize, line as usize), pix_val);
                 positions.set_val(column, line);
             }
         }
 
-        ind /= 2;
-        grid_depth += 1;
+        for level in 1..(levels + 1) {
+            let actual_step = 1 << (levels - level);
 
-        while ind >= 1 {
             let iter = (0..height)
-                .step_by(ind)
-                .flat_map(move |y| repeat(y).zip((0..width).step_by(ind)));
-            println!("{}", grid_depth);
+                .step_by(actual_step)
+                .flat_map(move |y| repeat(y).zip((0..width).step_by(actual_step)));
+
+            println!("{}", level);
             for (line, column) in iter {
                 if !positions.get_val(column, line) {
                     let (post_inter_value, predicted_value) = {
-                        let mut curr_level = &predictions[grid_depth - 1];
+                        let mut curr_level = &predictions[level - 1];
 
                         let prediction = get_interp_pixels(
                             depth,
-                            grid_depth,
+                            level,
                             (width, height),
                             (column, line),
                             curr_level,
@@ -64,22 +64,19 @@ impl Encoder for EncoderGrayscale {
 
                         let pix_value = input.get_pixel(column, line).data[0];
                         let post_inter_value = (pix_value as i32 - prediction as i32).abs() as u8;
-                        //input.get_pixel(x, y).data[0].wrapping_sub(predicted_value);
                         (post_inter_value, prediction)
                     };
                     let quanted_postinter_value = metadata.quantizator.quantize(post_inter_value);
 
                     let pixel = gray(quanted_postinter_value.saturating_add(predicted_value));
                     input.put_pixel(column, line, pixel);
-                    grid[grid_depth].push(quanted_postinter_value);
-                    predictions[grid_depth]
+                    grid[level].push(quanted_postinter_value);
+                    predictions[level]
                         .insert((column as usize, line as usize), quanted_postinter_value);
 
                     positions.set_val(column, line);
                 }
             }
-            ind /= 2;
-            grid_depth += 1;
         }
         return grid;
     }
