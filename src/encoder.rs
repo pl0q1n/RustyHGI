@@ -40,25 +40,43 @@ impl Encoder for EncoderGrayscale {
             }
         }
 
-        for level in 1..(levels + 1) {
-            let actual_step = 1 << (levels - level);
+        let encode_pixel = |column: u32, line: u32, previous_level: &PredictMap, input: &GrayImage| -> (u8, u8) {
+            let (post_inter_value, predicted_value) = {
+                let prediction = get_interp_pixels(
+                    depth,
+                    level,
+                    (width, height),
+                    (column, line),
+                    previous_level,
+                    0,
+                ).prediction();
 
-            let iter = (0..height)
-                .step_by(actual_step)
-                .flat_map(move |y| repeat(y).zip((0..width).step_by(actual_step)));
+                let pix_value = input.get_pixel(column, line).data[0];
+                let post_inter_value = (pix_value as i32 - prediction as i32).abs() as u8;
+                (post_inter_value, prediction)
+            };
+            let quanted_postinter_value = metadata.quantizator.quantize(post_inter_value);
+            (quanted_postinter_value, predicted_value)
+        };
 
-            println!("{}", level);
-            for (line, column) in iter {
-                if !positions.get_val(column, line) {
+        for level in 0..levels {
+            let e = levels - level;
+            let start = 1 << (e - 1);
+            let step = 1 << e;
+            let substep = start;
+
+            let mut column = 0;
+            while column < width {
+                for line in (start..height).step_by(step) {
                     let (post_inter_value, predicted_value) = {
-                        let mut curr_level = &predictions[level - 1];
+                        let mut previous_level = &predictions[level];
 
                         let prediction = get_interp_pixels(
                             depth,
-                            level,
+                            level + 1,
                             (width, height),
                             (column, line),
-                            curr_level,
+                            previous_level,
                             0,
                         ).prediction();
 
@@ -70,12 +88,44 @@ impl Encoder for EncoderGrayscale {
 
                     let pixel = gray(quanted_postinter_value.saturating_add(predicted_value));
                     input.put_pixel(column, line, pixel);
-                    grid[level].push(quanted_postinter_value);
-                    predictions[level]
+                    grid[level + 1].push(quanted_postinter_value);
+                    predictions[level + 1]
                         .insert((column as usize, line as usize), quanted_postinter_value);
 
-                    positions.set_val(column, line);
                 }
+
+                column += substep;
+                if column >= width {
+                    break;
+                }
+
+                for line in (0..height).step_by(substep as usize) {
+                    let (post_inter_value, predicted_value) = {
+                        let mut previous_level = &predictions[level];
+
+                        let prediction = get_interp_pixels(
+                            depth,
+                            level + 1,
+                            (width, height),
+                            (column, line),
+                            previous_level,
+                            0,
+                        ).prediction();
+
+                        let pix_value = input.get_pixel(column, line).data[0];
+                        let post_inter_value = (pix_value as i32 - prediction as i32).abs() as u8;
+                        (post_inter_value, prediction)
+                    };
+                    let quanted_postinter_value = metadata.quantizator.quantize(post_inter_value);
+
+                    let pixel = gray(quanted_postinter_value.saturating_add(predicted_value));
+                    input.put_pixel(column, line, pixel);
+                    grid[level + 1].push(quanted_postinter_value);
+                    predictions[level + 1]
+                        .insert((column as usize, line as usize), quanted_postinter_value);
+
+                }
+                column += substep;
             }
         }
         return grid;
