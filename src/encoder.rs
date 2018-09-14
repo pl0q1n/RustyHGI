@@ -1,5 +1,5 @@
 use image::GrayImage;
-use utils::{get_interp_pixels, traverse_level, GridU8, Metadata, PredictMap, gray};
+use utils::{get_interp_pixels, traverse_level, GridU8, Metadata, gray};
 
 pub struct EncoderGrayscale {}
 

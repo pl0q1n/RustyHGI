@@ -1,5 +1,5 @@
 use image::{GrayImage, ImageBuffer};
-use utils::{average, get_interp_pixels, gray, traverse_level, GridU8, Metadata, PredictMap};
+use utils::{average, get_interp_pixels, gray, traverse_level, GridU8, Metadata};
 
 pub struct DecoderGrayscale {}
 

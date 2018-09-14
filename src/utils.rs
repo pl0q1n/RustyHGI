@@ -1,8 +1,5 @@
 use image::{Luma, ImageBuffer};
-use std::collections::HashMap;
 
-pub type CoordHolder = (usize, usize);
-pub type PredictMap = HashMap<CoordHolder, u8>;
 pub type GridU8 = Vec<Vec<u8>>;
 
 #[inline(always)]
