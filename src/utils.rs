@@ -84,6 +84,33 @@ impl CrossedValues {
     }
 }
 
+pub fn traverse_level<F>(level: usize, levels: usize, width: u32, height: u32, mut f: F)
+where
+    F: FnMut(u32, u32),
+{
+    let e = levels - level;
+    let start = 1 << (e - 1);
+    let step = 1 << e;
+    let substep = start;
+
+    let mut i = 0;
+    while i < height {
+        for j in (start..width).step_by(step) {
+            f(i as u32, j as u32);
+        }
+
+        i += substep;
+        if i >= height {
+            break;
+        }
+
+        for j in (0..width).step_by(substep as usize) {
+            f(i as u32, j as u32);
+        }
+        i += substep;
+    }
+}
+
 pub fn get_interp_pixels(
     total_depth: usize,
     current_depth: usize,

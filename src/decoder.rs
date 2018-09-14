@@ -1,5 +1,5 @@
 use image::{GrayImage, ImageBuffer};
-use utils::{average, get_interp_pixels, gray, GridU8, Metadata, PredictMap};
+use utils::{average, get_interp_pixels, gray, traverse_level, GridU8, Metadata, PredictMap};
 
 pub struct DecoderGrayscale {}
 
@@ -36,66 +36,30 @@ impl Decoder for DecoderGrayscale {
         }
 
         for level in 0..levels {
-            let e = levels - level;
-            let start = 1 << (e - 1);
-            let step = 1 << e;
-            let substep = start;
-
             let mut grid_ind = 0;
-            let mut column = 0;
-            while column < width {
-                for line in (start..height).step_by(step) {
-                    let post_inter_value = {
-                        let mut curr_level = &predictions[level];
-                        let value = input[level + 1][grid_ind];
 
-                        let prediction = get_interp_pixels(
-                            levels,
-                            level + 1,
-                            (width, height),
-                            (column, line),
-                            curr_level,
-                            value,
-                        ).prediction();
+            traverse_level(level, levels, width, height, |column, line| {
+                let post_inter_value = {
+                    let mut curr_level = &predictions[level];
+                    let value = input[level + 1][grid_ind];
 
-                        average(value, prediction) as u8
-                    };
+                    let prediction = get_interp_pixels(
+                        levels,
+                        level + 1,
+                        (width, height),
+                        (column, line),
+                        curr_level,
+                        value,
+                    ).prediction();
 
-                    let pixel = gray(post_inter_value);
-                    img.put_pixel(column, line, pixel);
-                    predictions[level + 1].insert((column as usize, line as usize), post_inter_value);
-                    grid_ind += 1;
-                }
+                    average(value, prediction) as u8
+                };
 
-                column += substep;
-                if column >= width {
-                    break;
-                }
-
-                for line in (0..height).step_by(substep as usize) {
-                    let post_inter_value = {
-                        let mut curr_level = &predictions[level];
-                        let value = input[level + 1][grid_ind];
-
-                        let prediction = get_interp_pixels(
-                            levels,
-                            level + 1,
-                            (width, height),
-                            (column, line),
-                            curr_level,
-                            value,
-                        ).prediction();
-
-                        average(value, prediction) as u8
-                    };
-
-                    let pixel = gray(post_inter_value);
-                    img.put_pixel(column, line, pixel);
-                    predictions[level + 1].insert((column as usize, line as usize), post_inter_value);
-                    grid_ind += 1;
-                }
-                column += substep;
-            }
+                let pixel = gray(post_inter_value);
+                img.put_pixel(column, line, pixel);
+                predictions[level + 1].insert((column as usize, line as usize), post_inter_value);
+                grid_ind += 1;
+            });
         }
 
         return img;
