@@ -55,7 +55,7 @@ mod tests {
         let (metadata, imgbuf) = get_test_image(8, 8, 3);
 
         for line in imgbuf.chunks(imgbuf.width() as usize) {
-            println!("{:?}", line);
+            println!("{:2?}", line);
         }
 
         let mut encoder = EncoderGrayscale {};
@@ -64,8 +64,12 @@ mod tests {
         let mut decoder = DecoderGrayscale {};
         let image = decoder.decode(&metadata, &grid);
 
+        let line: String = ::std::iter::repeat('-')
+            .take(imgbuf.width() as usize * 4)
+            .collect();
+        println!("{}", line);
         for line in image.chunks(image.width() as usize) {
-            println!("{:?}", line);
+            println!("{:2?}", line);
         }
 
         for (x, y, pixel) in imgbuf.enumerate_pixels() {
