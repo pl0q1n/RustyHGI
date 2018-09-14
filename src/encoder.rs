@@ -15,7 +15,7 @@ impl Encoder for EncoderGrayscale {
     type Output = GridU8;
 
     fn encode(&mut self, metadata: &Metadata, input: Self::Input) -> Self::Output {
-        let (width, height) = metadata.dimensions;
+        let (width, height) = (metadata.width, metadata.height);
         let mut grid = GridU8::with_capacity(metadata.scale_level + 1);
         grid.resize(metadata.scale_level + 1, Vec::new());
 
@@ -26,7 +26,7 @@ impl Encoder for EncoderGrayscale {
         let level = 0;
         let step = 1 << levels;
         for line in (0..height).step_by(step) {
-            for column in (0..width).step_by(1 << levels) {
+            for column in (0..width).step_by(step) {
                 let pix_val = input.get_pixel(column, line).data[0];
 
                 grid[level].push(pix_val);

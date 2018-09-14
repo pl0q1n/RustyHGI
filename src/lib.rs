@@ -35,7 +35,8 @@ mod tests {
         let metadata = Metadata {
             quantizator: Quantizator::Loseless,
             interpolator: Interpolator::Crossed,
-            dimensions: (width, height),
+            width: width,
+            height: height,
             scale_level: levels,
         };
 
@@ -74,5 +75,4 @@ mod tests {
             assert!((before - after).abs() < 10);
         }
     }
-
 }

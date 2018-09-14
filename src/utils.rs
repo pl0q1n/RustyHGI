@@ -1,4 +1,3 @@
-use bit_vec::BitVec;
 use image::Luma;
 use std::collections::HashMap;
 
@@ -42,36 +41,12 @@ pub enum Interpolator {
     Previous,
 }
 
-pub struct PositionMap {
-    positions: BitVec,
-    width: u32,
-}
-
-impl PositionMap {
-    pub fn new(width: u32, height: u32) -> Self {
-        PositionMap {
-            positions: BitVec::from_elem((width * height) as usize, false),
-            width,
-        }
-    }
-
-    pub fn get_val(&self, column: u32, line: u32) -> bool {
-        self.positions
-            .get((line * self.width + column) as usize)
-            .unwrap()
-    }
-
-    pub fn set_val(&mut self, column: u32, line: u32) {
-        self.positions
-            .set((line * self.width + column) as usize, true);
-    }
-}
-
 #[derive(Clone, Serialize, Deserialize, Debug)]
 pub struct Metadata {
     pub quantizator: Quantizator,
     pub interpolator: Interpolator,
-    pub dimensions: (u32, u32),
+    pub width: u32,
+    pub height: u32,
     pub scale_level: usize,
 }
 
