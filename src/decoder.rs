@@ -19,9 +19,6 @@ impl Decoder for DecoderGrayscale {
         let mut img = ImageBuffer::new(width, height);
         let levels = input.len() - 1;
 
-        let mut predictions = Vec::new();
-        predictions.resize(levels + 1 as usize, PredictMap::new());
-
         let mut grid_ind = 0;
 
         let level = 0;
@@ -30,7 +27,6 @@ impl Decoder for DecoderGrayscale {
             for column in (0..width).step_by(step) {
                 let value = input[level][grid_ind];
                 img.put_pixel(column, line, gray(value));
-                predictions[level].insert((column as usize, line as usize), value);
                 grid_ind += 1;
             }
         }
@@ -40,7 +36,6 @@ impl Decoder for DecoderGrayscale {
 
             traverse_level(level, levels, width, height, |column, line| {
                 let post_inter_value = {
-                    let mut curr_level = &predictions[level];
                     let value = input[level + 1][grid_ind];
 
                     let prediction = get_interp_pixels(
@@ -48,7 +43,7 @@ impl Decoder for DecoderGrayscale {
                         level + 1,
                         (width, height),
                         (column, line),
-                        curr_level,
+                        &img,
                         value,
                     ).prediction();
 
@@ -57,7 +52,6 @@ impl Decoder for DecoderGrayscale {
 
                 let pixel = gray(post_inter_value);
                 img.put_pixel(column, line, pixel);
-                predictions[level + 1].insert((column as usize, line as usize), post_inter_value);
                 grid_ind += 1;
             });
         }

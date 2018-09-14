@@ -16,6 +16,7 @@ structopt = "0.2.10"
 
 [profile.release]
 lto = true
+debug = true
 
 [profile.bench]
 lto = true

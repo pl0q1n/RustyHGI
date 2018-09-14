@@ -1,4 +1,4 @@
-use image::Luma;
+use image::{Luma, ImageBuffer};
 use std::collections::HashMap;
 
 pub type CoordHolder = (usize, usize);
@@ -117,13 +117,14 @@ where
     }
 }
 
+
 #[inline]
 pub fn get_interp_pixels(
     total_depth: usize,
     current_depth: usize,
     (width, height): (u32, u32),
     (x, y): (u32, u32),
-    curr_level: &PredictMap,
+    image: &ImageBuffer<Luma<u8>, Vec<u8>>,
     default_val: u8,
 ) -> CrossedValues {
     let mut values = CrossedValues::default();
@@ -152,24 +153,18 @@ pub fn get_interp_pixels(
         && is_on_prev_lvl(total_depth, current_depth, y_left_cord)
         && is_on_prev_lvl(total_depth, current_depth, y_right_cord)
     {
-        values.left_top = *curr_level
-            .get(&(x_top_cord as usize, y_left_cord as usize))
-            .unwrap();
-        values.right_top = *curr_level
-            .get(&(x_top_cord as usize, y_right_cord as usize))
-            .unwrap();
-        values.left_bot = *curr_level
-            .get(&(x_bot_cord as usize, y_left_cord as usize))
-            .unwrap();
-        values.right_bot = *curr_level
-            .get(&(x_bot_cord as usize, y_right_cord as usize))
-            .unwrap();
+        let get_pixel = |x, y| image.get_pixel(x, y).data[0];
+
+        values.left_top  = get_pixel(x_top_cord, y_left_cord);
+        values.right_top = get_pixel(x_top_cord, y_right_cord);
+        values.left_bot  = get_pixel(x_bot_cord, y_left_cord);
+        values.right_bot = get_pixel(x_bot_cord, y_right_cord);
     } else {
         let get_pix_val = |x, y| {
             if is_on_prev_lvl(total_depth, current_depth, x)
                 && is_on_prev_lvl(total_depth, current_depth, y)
             {
-                *curr_level.get(&(x as usize, y as usize)).unwrap()
+                image.get_pixel(x, y).data[0]
             } else {
                 default_val
             }
