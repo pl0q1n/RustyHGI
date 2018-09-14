@@ -1,4 +1,4 @@
-use image::{Luma, ImageBuffer};
+use image::{ImageBuffer, Luma};
 
 pub type GridU8 = Vec<Vec<u8>>;
 
@@ -114,62 +114,53 @@ where
     }
 }
 
+use std::cmp;
 
 #[inline]
 pub fn get_interp_pixels(
-    total_depth: usize,
-    current_depth: usize,
+    levels: usize,
+    level: usize,
     (width, height): (u32, u32),
     (x, y): (u32, u32),
     image: &ImageBuffer<Luma<u8>, Vec<u8>>,
     default_val: u8,
 ) -> CrossedValues {
     let mut values = CrossedValues::default();
-    let ind = 2usize.pow((total_depth - current_depth) as u32);
-    let x_mod = x % (ind * 2) as u32;
-    let y_mod = y % (ind * 2) as u32;
+    // step size on previous level
+    let step = 1 << (levels - level + 1);
+    let x_mod = x % step as u32;
+    let y_mod = y % step as u32;
 
-    let x_top_cord = x - x_mod;
-    let mut x_bot_cord = x + (ind as u32 * 2 - x_mod);
-    let y_left_cord = y - y_mod;
-    let mut y_right_cord = y + (ind as u32 * 2 - y_mod);
+    let x_top = x - x_mod;
+    let x_bot = cmp::min(x + (step - x_mod), height - 1);
+    let y_left = y - y_mod;
+    let y_right = cmp::min(y + (step - y_mod), width - 1);
 
-    let bot_out_of_range = x_bot_cord >= width;
-    let right_out_of_range = y_right_cord >= height;
+    let is_on_prev_lvl = |x| is_on_prev_lvl(levels, level, x);
 
-    if bot_out_of_range {
-        x_bot_cord = width - 1;
-    }
-    if right_out_of_range {
-        y_right_cord = height - 1;
-    }
-    if !bot_out_of_range
-        && !right_out_of_range
-        && is_on_prev_lvl(total_depth, current_depth, x_top_cord)
-        && is_on_prev_lvl(total_depth, current_depth, x_bot_cord)
-        && is_on_prev_lvl(total_depth, current_depth, y_left_cord)
-        && is_on_prev_lvl(total_depth, current_depth, y_right_cord)
+    if is_on_prev_lvl(x_top)
+        && is_on_prev_lvl(x_bot)
+        && is_on_prev_lvl(y_left)
+        && is_on_prev_lvl(y_right)
     {
         let get_pixel = |x, y| image.get_pixel(x, y).data[0];
 
-        values.left_top  = get_pixel(x_top_cord, y_left_cord);
-        values.right_top = get_pixel(x_top_cord, y_right_cord);
-        values.left_bot  = get_pixel(x_bot_cord, y_left_cord);
-        values.right_bot = get_pixel(x_bot_cord, y_right_cord);
+        values.left_top  = get_pixel(x_top, y_left);
+        values.right_top = get_pixel(x_top, y_right);
+        values.left_bot  = get_pixel(x_bot, y_left);
+        values.right_bot = get_pixel(x_bot, y_right);
     } else {
         let get_pix_val = |x, y| {
-            if is_on_prev_lvl(total_depth, current_depth, x)
-                && is_on_prev_lvl(total_depth, current_depth, y)
-            {
+            if is_on_prev_lvl(x) && is_on_prev_lvl(y) {
                 image.get_pixel(x, y).data[0]
             } else {
                 default_val
             }
         };
-        values.left_top = get_pix_val(x_top_cord, y_left_cord);
-        values.right_top = get_pix_val(x_top_cord, y_right_cord);
-        values.left_bot = get_pix_val(x_bot_cord, y_left_cord);
-        values.right_bot = get_pix_val(x_bot_cord, y_right_cord);
+        values.left_top  = get_pix_val(x_top, y_left);
+        values.right_top = get_pix_val(x_top, y_right);
+        values.left_bot  = get_pix_val(x_bot, y_left);
+        values.right_bot = get_pix_val(x_bot, y_right);
     }
     return values;
 }
