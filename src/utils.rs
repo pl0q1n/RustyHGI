@@ -5,6 +5,7 @@ pub type CoordHolder = (usize, usize);
 pub type PredictMap = HashMap<CoordHolder, u8>;
 pub type GridU8 = Vec<Vec<u8>>;
 
+#[inline(always)]
 pub fn gray(value: u8) -> Luma<u8> {
     Luma { data: [value] }
 }
@@ -20,6 +21,7 @@ pub enum Quantizator {
 }
 
 impl Quantizator {
+    #[inline]
     pub fn quantize(&self, value: u8) -> u8 {
         let max_error = match self {
             Quantizator::Loseless => return value,
@@ -50,6 +52,7 @@ pub struct Metadata {
     pub scale_level: usize,
 }
 
+#[inline(always)]
 pub fn is_on_prev_lvl(total_levels: usize, level: usize, x: u32) -> bool {
     if x == 0 {
         return level == 1;
@@ -59,6 +62,7 @@ pub fn is_on_prev_lvl(total_levels: usize, level: usize, x: u32) -> bool {
     x.trailing_zeros() == (total_levels as u32 - previous as u32)
 }
 
+#[inline(always)]
 pub fn average(x: u8, y: u8) -> usize {
     (x as usize + y as usize + 1) / 2
 }
@@ -72,6 +76,7 @@ pub struct CrossedValues {
 }
 
 impl CrossedValues {
+    #[inline]
     pub fn prediction(&self) -> u8 {
         let left = average(self.left_top, self.left_bot);
         let right = average(self.right_bot, self.right_top);
@@ -84,6 +89,7 @@ impl CrossedValues {
     }
 }
 
+#[inline]
 pub fn traverse_level<F>(level: usize, levels: usize, width: u32, height: u32, mut f: F)
 where
     F: FnMut(u32, u32),
@@ -93,24 +99,25 @@ where
     let step = 1 << e;
     let substep = start;
 
-    let mut i = 0;
-    while i < height {
-        for j in (start..width).step_by(step) {
-            f(i as u32, j as u32);
+    let mut column = 0;
+    while column < width {
+        for line in (start..height).step_by(step) {
+            f(column as u32, line as u32);
         }
 
-        i += substep;
-        if i >= height {
+        column += substep;
+        if column >= width {
             break;
         }
 
-        for j in (0..width).step_by(substep as usize) {
-            f(i as u32, j as u32);
+        for line in (0..height).step_by(substep as usize) {
+            f(column as u32, line as u32);
         }
-        i += substep;
+        column += substep;
     }
 }
 
+#[inline]
 pub fn get_interp_pixels(
     total_depth: usize,
     current_depth: usize,

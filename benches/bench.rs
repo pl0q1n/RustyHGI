@@ -35,13 +35,15 @@ fn benchmarks(c: &mut Criterion) {
     c.bench_function("compression", |bencher| {
         let (metadata, image) = get_test_image(1920, 1080, 4);
         let mut encoder = EncoderGrayscale {};
-        bencher.iter_with_setup(|| image.clone(), |image| encoder.encode(&metadata, image));
+        bencher.iter_with_large_setup(|| image.clone(), |image| 
+            drop(encoder.encode(&metadata, image))
+        );
     });
 }
 
 criterion_group!(
     name = benches;
-    config = Criterion::default().sample_size(3);
+    config = Criterion::default().sample_size(10);
     targets = benchmarks
 );
 criterion_main!(benches);
