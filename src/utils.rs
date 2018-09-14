@@ -99,21 +99,21 @@ where
     let step = 1 << e;
     let substep = start;
 
-    let mut column = 0;
-    while column < width {
-        for line in (start..height).step_by(step) {
+    let mut line = 0;
+    while line < height {
+        for column in (start..width).step_by(step) {
             f(column as u32, line as u32);
         }
 
-        column += substep;
-        if column >= width {
+        line += substep;
+        if line >= height {
             break;
         }
 
-        for line in (0..height).step_by(substep as usize) {
+        for column in (0..width).step_by(substep as usize) {
             f(column as u32, line as u32);
         }
-        column += substep;
+        line += substep;
     }
 }
 
