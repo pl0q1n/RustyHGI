@@ -16,3 +16,13 @@ structopt = "0.2.10"
 
 [profile.release]
 lto = true
+
+[profile.bench]
+lto = true
+
+[dev-dependencies]
+criterion = "0.2"
+
+[[bench]]
+name = "bench"
+harness = false
