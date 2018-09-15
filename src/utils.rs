@@ -26,11 +26,10 @@ impl Quantizator {
             Quantizator::Medium => 20.0,
             Quantizator::High => 30.0,
         };
-
+        
         let scale = 2.0 * max_error + 1.0;
         let r = (value as f64 + max_error) / scale;
         let v = r.floor() * scale;
-
         v as u8
     }
 }
@@ -122,7 +121,7 @@ use std::cmp;
 pub fn get_interp_pixels(
     levels: usize,
     level: usize,
-    (x, y): (u32, u32),
+    (x, y): (u32, u32), // column, line
     image: &ImageBuffer<Luma<u8>, Vec<u8>>,
     default_val: u8,
 ) -> CrossedValues {
@@ -133,35 +132,22 @@ pub fn get_interp_pixels(
     let y_mod = y % step as u32;
 
     let x_top = x - x_mod;
-    let x_bot = cmp::min(x + (step - x_mod), image.height() - 1);
+    let x_bot = x + (step - x_mod);
     let y_left = y - y_mod;
-    let y_right = cmp::min(y + (step - y_mod), image.width() - 1);
+    let y_right = y + (step - y_mod);
 
-    let is_on_prev_lvl = |x| is_on_prev_lvl(levels, level, x);
+    // let is_on_prev_lvl = |x| is_on_prev_lvl(levels, level, x);
+    let get_pix_val = |x, y| {
+        if x < image.width() && y < image.height() {
+            image.get_pixel(x, y).data[0]
+        } else {
+            default_val
+        }
+    };
 
-    if is_on_prev_lvl(x_top)
-        && is_on_prev_lvl(x_bot)
-        && is_on_prev_lvl(y_left)
-        && is_on_prev_lvl(y_right)
-    {
-        let get_pixel = |x, y| image.get_pixel(x, y).data[0];
-
-        values.left_top  = get_pixel(x_top, y_left);
-        values.right_top = get_pixel(x_top, y_right);
-        values.left_bot  = get_pixel(x_bot, y_left);
-        values.right_bot = get_pixel(x_bot, y_right);
-    } else {
-        let get_pix_val = |x, y| {
-            if is_on_prev_lvl(x) && is_on_prev_lvl(y) {
-                image.get_pixel(x, y).data[0]
-            } else {
-                default_val
-            }
-        };
-        values.left_top  = get_pix_val(x_top, y_left);
-        values.right_top = get_pix_val(x_top, y_right);
-        values.left_bot  = get_pix_val(x_bot, y_left);
-        values.right_bot = get_pix_val(x_bot, y_right);
-    }
+    values.left_top = get_pix_val(x_top, y_left);
+    values.right_top = get_pix_val(x_top, y_right);
+    values.left_bot = get_pix_val(x_bot, y_left);
+    values.right_bot = get_pix_val(x_bot, y_right);
     return values;
 }
