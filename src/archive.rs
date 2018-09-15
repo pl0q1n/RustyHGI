@@ -1,17 +1,17 @@
-use bincode;
-use byteorder::{ReadBytesExt, WriteBytesExt, LE};
-use flate2::read::DeflateDecoder;
-use flate2::write::DeflateEncoder;
-use flate2::Compression;
-use serde::de::DeserializeOwned;
-use serde::Serialize;
 use std::error::Error;
 use std::io::{Read, Write};
+
+use bincode;
+use byteorder::{ReadBytesExt, WriteBytesExt, LE};
+use flate2::{read::DeflateDecoder, write::DeflateEncoder, Compression};
+use serde::de::DeserializeOwned;
+use serde::Serialize;
+
 use utils::Metadata;
 
 const MAGIC: u32 = 0xBAADA555;
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Eq)]
 pub struct Archive<G> {
     pub metadata: Metadata,
     pub grid: G,
@@ -34,9 +34,9 @@ impl<G: Serialize + DeserializeOwned> Archive<G> {
         if magic != MAGIC {
             return Err("incorrect magic number".into());
         };
-        let metadata = bincode::deserialize_from::<_, Metadata>(&mut r)?;
+        let metadata: Metadata = bincode::deserialize_from(&mut r)?;
         let decoder = DeflateDecoder::new(r);
-        let grid = bincode::deserialize_from::<_, G>(decoder)?;
+        let grid: G = bincode::deserialize_from(decoder)?;
         Ok(Archive { metadata, grid })
     }
 }

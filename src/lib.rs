@@ -6,7 +6,6 @@ extern crate image;
 extern crate serde;
 #[macro_use]
 extern crate clap;
-
 #[macro_use]
 extern crate serde_derive;
 
@@ -17,14 +16,18 @@ mod decoder;
 
 pub use self::utils::{Metadata, Quantizator, Interpolator};
 pub use self::encoder::{Encoder, EncoderGrayscale};
-
+pub use self::decoder::{Decoder, DecoderGrayscale};
+pub use self::archive::Archive;
 
 #[cfg(test)]
 mod tests {
-    use super::*;
-    use decoder::{Decoder, DecoderGrayscale};
+    use std::io;
     use image;
-    use utils::{Interpolator, Quantizator};
+
+    use encoder::{Encoder, EncoderGrayscale};
+    use decoder::{Decoder, DecoderGrayscale};
+    use archive::Archive;
+    use utils::{Metadata, Interpolator, Quantizator};
 
     type Pixel = image::Luma<u8>;
     type Subpixel = <Pixel as image::Pixel>::Subpixel;
@@ -41,8 +44,6 @@ mod tests {
         };
 
         let mut imgbuf = image::ImageBuffer::new(width, height);
-
-        // fill image with random pixels
         for (x, y, pixel) in imgbuf.enumerate_pixels_mut() {
             *pixel = image::Luma([(x * y) as u8]);
         }
@@ -73,17 +74,29 @@ mod tests {
         }
 
         let mut sd = 0;
-        let mut failed = false;
         for (x, y, pixel) in imgbuf.enumerate_pixels() {
             let before = pixel.data[0] as i32;
             let after = image[(x, y)].data[0] as i32;
             let diff = (before - after).abs();
-            sd += diff * diff;
 
-            failed |= diff >= 10;
+            sd += diff * diff;
         }
 
-        println!("SD={}", sd);
-        assert!(!failed);
+        assert_eq!(sd, 0);
+    }
+
+    #[test]
+    fn serde() {
+        let (metadata, imgbuf) = get_test_image(8, 8, 3);
+        let mut encoder = EncoderGrayscale {};
+        let grid = encoder.encode(&metadata, imgbuf);
+        let archive = Archive { metadata, grid };
+        let mut buffer = Vec::new();
+        let res = archive.serialize_to_writer(&mut buffer);
+        assert!(res.is_ok());
+        let mut cursor = io::Cursor::new(&buffer);
+        let res = Archive::deserialize_from_reader(&mut cursor);
+        assert!(res.is_ok());
+        assert_eq!(res.unwrap(), archive);
     }
 }
