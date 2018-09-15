@@ -29,7 +29,7 @@ impl Quantizator {
         
         let scale = 2.0 * max_error + 1.0;
         let r = (value as f64 + max_error) / scale;
-        let v = r.floor() * scale;
+        let v = r.ceil() * scale;
         v as u8
     }
 }
@@ -48,16 +48,6 @@ pub struct Metadata {
     pub width: u32,
     pub height: u32,
     pub scale_level: usize,
-}
-
-#[inline(always)]
-pub fn is_on_prev_lvl(total_levels: usize, level: usize, x: u32) -> bool {
-    if x == 0 {
-        return level == 1;
-    }
-
-    let previous = level - 1;
-    x.trailing_zeros() == (total_levels as u32 - previous as u32)
 }
 
 #[inline(always)]
@@ -114,8 +104,6 @@ where
         line += substep;
     }
 }
-
-use std::cmp;
 
 #[inline]
 pub fn get_interp_pixels(

@@ -12,10 +12,31 @@ use utils::Quantizator;
 )]
 pub enum Opts {
     #[structopt(name = "encode")]
-    Encode(EncodeOpts),
+    Encode {
+        #[structopt(flatten)]
+        io: IO,
+
+        #[structopt(flatten)]
+        options: EncodingOptions
+    },
 
     #[structopt(name = "decode")]
-    Decode(DecodeOpts),
+    Decode {
+        #[structopt(flatten)]
+        io: IO
+    },
+
+    #[structopt(name = "test")]
+    Test {
+        #[structopt(parse(from_os_str))]
+        input: PathBuf,
+
+        #[structopt(short="s", long="suffix", default_value="")]
+        suffix: String, // output files suffix
+
+        #[structopt(flatten)]
+        options: EncodingOptions
+    },
 }
 
 #[derive(StructOpt, Debug)]
@@ -27,11 +48,10 @@ pub struct IO {
     pub output: PathBuf,
 }
 
+
+
 #[derive(StructOpt, Debug)]
-pub struct EncodeOpts {
-    #[structopt(flatten)]
-    pub io: IO,
-    
+pub struct EncodingOptions {
     #[structopt(short = "l", long = "level", default_value = "4")]
     pub level: usize,
 
@@ -42,10 +62,4 @@ pub struct EncodeOpts {
         default_value = "medium"
     )]
     pub quantizator: Quantizator,
-}
-
-#[derive(StructOpt, Debug)]
-pub struct DecodeOpts {
-    #[structopt(flatten)]
-    pub io: IO
 }
