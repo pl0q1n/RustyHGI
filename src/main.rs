@@ -30,12 +30,11 @@ use utils::{GridU8, Interpolator, Metadata};
 
 fn encode(opts: &EncodeOpts) -> Result<(), Box<Error>> {
     let image = image::open(&opts.io.input)?.to_luma();
-    let dimensions = image.dimensions();
-
     let metadata = Metadata {
         quantizator: opts.quantizator,
         interpolator: Interpolator::Crossed,
-        dimensions,
+        width: image.width(),
+        height: image.height(),
         scale_level: opts.level,
     };
 

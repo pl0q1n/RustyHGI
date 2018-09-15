@@ -1,11 +1,8 @@
-use bit_vec::BitVec;
-use image::Luma;
-use std::collections::HashMap;
+use image::{ImageBuffer, Luma};
 
-pub type CoordHolder = (usize, usize);
-pub type PredictMap = HashMap<CoordHolder, u8>;
 pub type GridU8 = Vec<Vec<u8>>;
 
+#[inline(always)]
 pub fn gray(value: u8) -> Luma<u8> {
     Luma { data: [value] }
 }
@@ -21,6 +18,7 @@ pub enum Quantizator {
 }
 
 impl Quantizator {
+    #[inline]
     pub fn quantize(&self, value: u8) -> u8 {
         let max_error = match self {
             Quantizator::Loseless => return value,
@@ -42,39 +40,16 @@ pub enum Interpolator {
     Previous,
 }
 
-pub struct PositionMap {
-    positions: BitVec,
-    width: u32,
-}
-
-impl PositionMap {
-    pub fn new(width: u32, height: u32) -> Self {
-        PositionMap {
-            positions: BitVec::from_elem((width * height) as usize, false),
-            width,
-        }
-    }
-
-    pub fn get_val(&self, column: u32, line: u32) -> bool {
-        self.positions
-            .get((line * self.width + column) as usize)
-            .unwrap()
-    }
-
-    pub fn set_val(&mut self, column: u32, line: u32) {
-        self.positions
-            .set((line * self.width + column) as usize, true);
-    }
-}
-
 #[derive(Clone, Serialize, Deserialize, Debug)]
 pub struct Metadata {
     pub quantizator: Quantizator,
     pub interpolator: Interpolator,
-    pub dimensions: (u32, u32),
+    pub width: u32,
+    pub height: u32,
     pub scale_level: usize,
 }
 
+#[inline(always)]
 pub fn is_on_prev_lvl(total_levels: usize, level: usize, x: u32) -> bool {
     if x == 0 {
         return level == 1;
@@ -84,6 +59,7 @@ pub fn is_on_prev_lvl(total_levels: usize, level: usize, x: u32) -> bool {
     x.trailing_zeros() == (total_levels as u32 - previous as u32)
 }
 
+#[inline(always)]
 pub fn average(x: u8, y: u8) -> usize {
     (x as usize + y as usize + 1) / 2
 }
@@ -97,6 +73,7 @@ pub struct CrossedValues {
 }
 
 impl CrossedValues {
+    #[inline]
     pub fn prediction(&self) -> u8 {
         let left = average(self.left_top, self.left_bot);
         let right = average(self.right_bot, self.right_top);
@@ -109,66 +86,81 @@ impl CrossedValues {
     }
 }
 
+#[inline]
+pub fn traverse_level<F>(level: usize, levels: usize, width: u32, height: u32, mut f: F)
+where
+    F: FnMut(u32, u32),
+{
+    let e = levels - level;
+    let start = 1 << (e - 1);
+    let step = 1 << e;
+    let substep = start;
+
+    let mut line = 0;
+    while line < height {
+        for column in (start..width).step_by(step) {
+            f(column as u32, line as u32);
+        }
+
+        line += substep;
+        if line >= height {
+            break;
+        }
+
+        for column in (0..width).step_by(substep as usize) {
+            f(column as u32, line as u32);
+        }
+        line += substep;
+    }
+}
+
+use std::cmp;
+
+#[inline]
 pub fn get_interp_pixels(
-    total_depth: usize,
-    current_depth: usize,
+    levels: usize,
+    level: usize,
     (width, height): (u32, u32),
     (x, y): (u32, u32),
-    curr_level: &PredictMap,
+    image: &ImageBuffer<Luma<u8>, Vec<u8>>,
     default_val: u8,
 ) -> CrossedValues {
     let mut values = CrossedValues::default();
-    let ind = 2usize.pow((total_depth - current_depth) as u32);
-    let x_mod = x % (ind * 2) as u32;
-    let y_mod = y % (ind * 2) as u32;
+    // step size on previous level
+    let step = 1 << (levels - level + 1);
+    let x_mod = x % step as u32;
+    let y_mod = y % step as u32;
 
-    let x_top_cord = x - x_mod;
-    let mut x_bot_cord = x + (ind as u32 * 2 - x_mod);
-    let y_left_cord = y - y_mod;
-    let mut y_right_cord = y + (ind as u32 * 2 - y_mod);
+    let x_top = x - x_mod;
+    let x_bot = cmp::min(x + (step - x_mod), height - 1);
+    let y_left = y - y_mod;
+    let y_right = cmp::min(y + (step - y_mod), width - 1);
 
-    let bot_out_of_range = x_bot_cord >= width;
-    let right_out_of_range = y_right_cord >= height;
+    let is_on_prev_lvl = |x| is_on_prev_lvl(levels, level, x);
 
-    if bot_out_of_range {
-        x_bot_cord = width - 1;
-    }
-    if right_out_of_range {
-        y_right_cord = height - 1;
-    }
-    if !bot_out_of_range
-        && !right_out_of_range
-        && is_on_prev_lvl(total_depth, current_depth, x_top_cord)
-        && is_on_prev_lvl(total_depth, current_depth, x_bot_cord)
-        && is_on_prev_lvl(total_depth, current_depth, y_left_cord)
-        && is_on_prev_lvl(total_depth, current_depth, y_right_cord)
+    if is_on_prev_lvl(x_top)
+        && is_on_prev_lvl(x_bot)
+        && is_on_prev_lvl(y_left)
+        && is_on_prev_lvl(y_right)
     {
-        values.left_top = *curr_level
-            .get(&(x_top_cord as usize, y_left_cord as usize))
-            .unwrap();
-        values.right_top = *curr_level
-            .get(&(x_top_cord as usize, y_right_cord as usize))
-            .unwrap();
-        values.left_bot = *curr_level
-            .get(&(x_bot_cord as usize, y_left_cord as usize))
-            .unwrap();
-        values.right_bot = *curr_level
-            .get(&(x_bot_cord as usize, y_right_cord as usize))
-            .unwrap();
+        let get_pixel = |x, y| image.get_pixel(x, y).data[0];
+
+        values.left_top  = get_pixel(x_top, y_left);
+        values.right_top = get_pixel(x_top, y_right);
+        values.left_bot  = get_pixel(x_bot, y_left);
+        values.right_bot = get_pixel(x_bot, y_right);
     } else {
         let get_pix_val = |x, y| {
-            if is_on_prev_lvl(total_depth, current_depth, x)
-                && is_on_prev_lvl(total_depth, current_depth, y)
-            {
-                *curr_level.get(&(x as usize, y as usize)).unwrap()
+            if is_on_prev_lvl(x) && is_on_prev_lvl(y) {
+                image.get_pixel(x, y).data[0]
             } else {
                 default_val
             }
         };
-        values.left_top = get_pix_val(x_top_cord, y_left_cord);
-        values.right_top = get_pix_val(x_top_cord, y_right_cord);
-        values.left_bot = get_pix_val(x_bot_cord, y_left_cord);
-        values.right_bot = get_pix_val(x_bot_cord, y_right_cord);
+        values.left_top  = get_pix_val(x_top, y_left);
+        values.right_top = get_pix_val(x_top, y_right);
+        values.left_bot  = get_pix_val(x_bot, y_left);
+        values.right_bot = get_pix_val(x_bot, y_right);
     }
     return values;
 }
