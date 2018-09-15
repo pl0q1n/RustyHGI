@@ -36,7 +36,6 @@ impl Encoder for EncoderGrayscale {
                 let prediction = get_interp_pixels(
                     levels,
                     level + 1,
-                    (width, height),
                     (column, line),
                     &input,
                     0,

@@ -27,9 +27,11 @@ impl Quantizator {
             Quantizator::High => 30.0,
         };
 
-        ((2 * max_error as usize + 1)
-            * ((value as f64 + max_error) / (2.0 * max_error + 1.0)).floor() as usize
-            % 256) as u8
+        let scale = 2.0 * max_error + 1.0;
+        let r = (value as f64 + max_error) / scale;
+        let v = r.floor() * scale;
+
+        v as u8
     }
 }
 
@@ -120,7 +122,6 @@ use std::cmp;
 pub fn get_interp_pixels(
     levels: usize,
     level: usize,
-    (width, height): (u32, u32),
     (x, y): (u32, u32),
     image: &ImageBuffer<Luma<u8>, Vec<u8>>,
     default_val: u8,
@@ -132,9 +133,9 @@ pub fn get_interp_pixels(
     let y_mod = y % step as u32;
 
     let x_top = x - x_mod;
-    let x_bot = cmp::min(x + (step - x_mod), height - 1);
+    let x_bot = cmp::min(x + (step - x_mod), image.height() - 1);
     let y_left = y - y_mod;
-    let y_right = cmp::min(y + (step - y_mod), width - 1);
+    let y_right = cmp::min(y + (step - y_mod), image.width() - 1);
 
     let is_on_prev_lvl = |x| is_on_prev_lvl(levels, level, x);
 

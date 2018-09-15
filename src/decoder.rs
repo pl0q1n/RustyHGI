@@ -41,7 +41,6 @@ impl Decoder for DecoderGrayscale {
                     let prediction = get_interp_pixels(
                         levels,
                         level + 1,
-                        (width, height),
                         (column, line),
                         &img,
                         value,
