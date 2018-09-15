@@ -72,11 +72,18 @@ mod tests {
             println!("{:2?}", line);
         }
 
+        let mut sd = 0;
+        let mut failed = false;
         for (x, y, pixel) in imgbuf.enumerate_pixels() {
             let before = pixel.data[0] as i32;
             let after = image[(x, y)].data[0] as i32;
+            let diff = (before - after).abs();
+            sd += diff * diff;
 
-            assert!((before - after).abs() < 10);
+            failed |= diff >= 10;
         }
+
+        println!("SD={}", sd);
+        assert!(!failed);
     }
 }

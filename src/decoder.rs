@@ -35,21 +35,16 @@ impl Decoder for DecoderGrayscale {
             let mut grid_ind = 0;
 
             traverse_level(level, levels, width, height, |column, line| {
-                let post_inter_value = {
-                    let value = input[level + 1][grid_ind];
+                let diff = input[level + 1][grid_ind];
+                let prediction = get_interp_pixels(
+                    levels,
+                    level + 1,
+                    (column, line),
+                    &img,
+                    0,
+                ).prediction();
 
-                    let prediction = get_interp_pixels(
-                        levels,
-                        level + 1,
-                        (column, line),
-                        &img,
-                        value,
-                    ).prediction();
-
-                    average(value, prediction) as u8
-                };
-
-                let pixel = gray(post_inter_value);
+                let pixel = gray(prediction.wrapping_add(diff));
                 img.put_pixel(column, line, pixel);
                 grid_ind += 1;
             });

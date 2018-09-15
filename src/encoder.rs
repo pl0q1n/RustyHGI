@@ -41,11 +41,12 @@ impl Encoder for EncoderGrayscale {
                     0,
                 ).prediction();
 
-                let pix_value = input.get_pixel(column, line).data[0];
-                let post_inter_value = (pix_value as i32 - prediction as i32).abs() as u8;
-                let quanted_postinter_value = metadata.quantizator.quantize(post_inter_value);
-                grid[level + 1].push(quanted_postinter_value);
-                let pixel = gray(quanted_postinter_value);
+                let actual_value = input.get_pixel(column, line).data[0];
+                let diff = actual_value.wrapping_sub(prediction);
+                let quanted_diff = metadata.quantizator.quantize(diff);
+
+                grid[level + 1].push(quanted_diff);
+                let pixel = gray(prediction.wrapping_add(quanted_diff));
                 input.put_pixel(column, line, pixel);
             });
         }
