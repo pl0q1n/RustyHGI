@@ -90,11 +90,12 @@ fn test(input: &Path, suffix: &str, opts: &EncodingOptions) -> Result<(), Box<Er
     archive.serialize_to_writer(&mut buffer)?;
 
     let uncompressed = image_before.height() * image_before.width();
+    sd /= uncompressed as usize;
     let compressed = buffer.len();
-    println!("Uncompressed: {}", uncompressed);
-    println!("Compressed:   {}", compressed);
-    println!("Ratio:        {}", uncompressed as f64 / compressed as f64);
-    println!("SD:           {}", sd);
+    println!("Uncompressed: {} kb", uncompressed / 1024);
+    println!("Compressed:   {} kb", compressed / 1024);
+    println!("Ratio:        {:.2}", uncompressed as f64 / compressed as f64);
+    println!("SD:           {:.2}", (sd as f64).sqrt());
 
     let filename = input.file_stem().unwrap().to_string_lossy().into_owned() + suffix;
     image_after.save(filename.clone() + ".png")?;
