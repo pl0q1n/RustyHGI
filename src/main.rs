@@ -1,5 +1,4 @@
 extern crate bincode;
-extern crate bit_vec;
 extern crate byteorder;
 extern crate flate2;
 extern crate image;
