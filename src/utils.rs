@@ -22,14 +22,14 @@ impl Quantizator {
     pub fn quantize(&self, value: u8) -> u8 {
         let max_error = match self {
             Quantizator::Loseless => return value,
-            Quantizator::Low => 10.0,
-            Quantizator::Medium => 20.0,
-            Quantizator::High => 30.0,
+            Quantizator::Low => 10,
+            Quantizator::Medium => 20,
+            Quantizator::High => 30,
         };
         
-        let scale = 2.0 * max_error + 1.0;
-        let r = (value as f64 + max_error) / scale;
-        let v = r.ceil() * scale;
+        let scale = 2 * max_error + 1;
+        let r = (value as usize + max_error) / scale;
+        let v = r * scale;
         v as u8
     }
 }
@@ -63,10 +63,10 @@ impl CrossedValues {
     pub fn prediction(&self) -> u8 {
         let average = |x, y| (x as usize + y as usize + 1) / 2;
 
-        let left = average(self.left_top, self.left_bot);
+        let left  = average(self.left_top,  self.left_bot);
         let right = average(self.right_bot, self.right_top);
-        let top = average(self.right_top, self.left_top);
-        let bot = average(self.right_bot, self.left_bot);
+        let top   = average(self.right_top, self.left_top);
+        let bot   = average(self.right_bot, self.left_bot);
 
         let average = (left + right + top + bot + 1) / 4;
 
@@ -112,12 +112,10 @@ pub fn interpolate(
     // step size on previous level
     let step = 1 << (levels - level + 1);
     let mask = step - 1;
-    let x_mod = x & mask as u32;
-    let y_mod = y & mask as u32;
 
-    let x_top   = x - x_mod;
+    let x_top   = x - (x & mask); 
+    let y_left  = y - (y & mask);
     let x_bot   = x_top + step;
-    let y_left  = y - y_mod;
     let y_right = y_left + step;
 
     let get_pixel = |x, y| {
