@@ -33,7 +33,7 @@ impl Decoder for DecoderGrayscale {
         for level in 0..levels {
             let mut index = 0;
 
-            traverse_level(level, levels, width, height, |column, line| {
+            let process_pixel = #[inline(always)] |column, line| {
                 let diff = grid[level + 1][index];
                 let prediction = interpolate(
                     levels,
@@ -45,7 +45,9 @@ impl Decoder for DecoderGrayscale {
                 let pixel = gray(prediction.wrapping_add(diff));
                 img.put_pixel(column, line, pixel);
                 index += 1;
-            });
+            };
+
+            traverse_level(level, levels, width, height, process_pixel);
         }
 
         return img;

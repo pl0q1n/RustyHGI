@@ -31,7 +31,7 @@ impl Encoder for EncoderGrayscale {
         }
 
         for level in 0..levels {
-            traverse_level(level, levels, width, height, |column, line| {
+            let process_pixel = #[inline(always)] |column, line| {
                 let prediction = interpolate(
                     levels,
                     level + 1,
@@ -41,12 +41,20 @@ impl Encoder for EncoderGrayscale {
 
                 let actual_value = input.get_pixel(column, line).data[0];
                 let diff = actual_value.wrapping_sub(prediction);
-                let quanted_diff = quantizator.quantize(diff);
+                let mut quanted_diff = quantizator.quantize(diff);
+
+                let overflow = prediction.checked_add(quanted_diff).is_none();
+                let overflow_is_expected = prediction.checked_add(diff).is_none();
+                if  overflow != overflow_is_expected {
+                    quanted_diff = diff;
+                }
 
                 grid[level + 1].push(quanted_diff);
                 let pixel = gray(prediction.wrapping_add(quanted_diff));
                 input.put_pixel(column, line, pixel);
-            });
+            };
+
+            traverse_level(level, levels, width, height, process_pixel);
         }
         return grid;
     }

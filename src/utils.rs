@@ -18,7 +18,7 @@ pub enum QuantizationLevel {
 }
 
 pub struct Quantizator {
-    error: usize
+    table: [u8; 256]
 }
 
 impl Quantizator {
@@ -30,15 +30,23 @@ impl Quantizator {
             QuantizationLevel::High => 30,
         };
 
-        Quantizator { error }        
+        let scale = 2 * error + 1;
+        let quantize = |x| {
+            let r = (x as usize + error) / scale;
+            let v = r * scale;
+            v as u8
+        };
+
+        let mut table = [0; 256];
+        for x in 0..table.len() {
+            table[x] = quantize(x as u8);
+        }
+        Quantizator { table }        
     }
     
     #[inline]
     pub fn quantize(&self, value: u8) -> u8 {
-        let scale = 2 * self.error + 1;
-        let r = (value as usize + self.error) / scale;
-        let v = r * scale;
-        v as u8
+        self.table[value as usize]
     }
 }
 
@@ -69,14 +77,14 @@ pub struct CrossedValues {
 impl CrossedValues {
     #[inline]
     pub fn prediction(&self) -> u8 {
-        let average = |x, y| (x as usize + y as usize + 1) / 2;
+        let average = |x, y| (x as usize + y as usize + 1) >> 1; // div 2
 
         let left  = average(self.left_top,  self.left_bot);
         let right = average(self.right_bot, self.right_top);
         let top   = average(self.right_top, self.left_top);
         let bot   = average(self.right_bot, self.left_bot);
 
-        let average = (left + right + top + bot + 1) / 4;
+        let average = (left + right + top + bot + 1) >> 2; // div 4
 
         average as u8
     }
@@ -94,8 +102,10 @@ where
 
     let mut line = 0;
     while line < height {
-        for column in (start..width).step_by(step) {
+        let mut column = start;
+        while column < width {
             f(column as u32, line as u32);
+            column += step;
         }
 
         line += substep;
@@ -103,8 +113,10 @@ where
             break;
         }
 
-        for column in (0..width).step_by(substep as usize) {
+        let mut column = 0;
+        while column < width {
             f(column as u32, line as u32);
+            column += substep;
         }
         line += substep;
     }
