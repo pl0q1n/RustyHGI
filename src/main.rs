@@ -1,3 +1,5 @@
+#![feature(stmt_expr_attributes)]
+
 extern crate bincode;
 extern crate byteorder;
 extern crate flate2;

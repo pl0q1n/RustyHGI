@@ -31,7 +31,7 @@ impl Encoder for EncoderGrayscale {
         }
 
         for level in 0..levels {
-            traverse_level(level, levels, width, height, |column, line| {
+            let process_pixel = #[inline(always)] |column, line| {
                 let prediction = interpolate(
                     levels,
                     level + 1,
@@ -52,7 +52,9 @@ impl Encoder for EncoderGrayscale {
                 grid[level + 1].push(quanted_diff);
                 let pixel = gray(prediction.wrapping_add(quanted_diff));
                 input.put_pixel(column, line, pixel);
-            });
+            };
+
+            traverse_level(level, levels, width, height, process_pixel);
         }
         return grid;
     }

@@ -102,8 +102,10 @@ where
 
     let mut line = 0;
     while line < height {
-        for column in (start..width).step_by(step) {
+        let mut column = start;
+        while column < width {
             f(column as u32, line as u32);
+            column += step;
         }
 
         line += substep;
@@ -111,8 +113,10 @@ where
             break;
         }
 
-        for column in (0..width).step_by(substep as usize) {
+        let mut column = 0;
+        while column < width {
             f(column as u32, line as u32);
+            column += substep;
         }
         line += substep;
     }
