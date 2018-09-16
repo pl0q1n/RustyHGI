@@ -77,14 +77,14 @@ pub struct CrossedValues {
 impl CrossedValues {
     #[inline]
     pub fn prediction(&self) -> u8 {
-        let average = |x, y| (x as usize + y as usize + 1) / 2;
+        let average = |x, y| (x as usize + y as usize + 1) >> 1; // div 2
 
         let left  = average(self.left_top,  self.left_bot);
         let right = average(self.right_bot, self.right_top);
         let top   = average(self.right_top, self.left_top);
         let bot   = average(self.right_bot, self.left_bot);
 
-        let average = (left + right + top + bot + 1) / 4;
+        let average = (left + right + top + bot + 1) >> 2; // div 4
 
         average as u8
     }
