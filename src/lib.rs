@@ -14,7 +14,7 @@ mod encoder;
 mod archive;
 mod decoder;
 
-pub use self::utils::{Metadata, Quantizator, Interpolator};
+pub use self::utils::{Metadata, QuantizationLevel, Interpolator};
 pub use self::encoder::{Encoder, EncoderGrayscale};
 pub use self::decoder::{Decoder, DecoderGrayscale};
 pub use self::archive::Archive;
@@ -27,7 +27,7 @@ mod tests {
     use encoder::{Encoder, EncoderGrayscale};
     use decoder::{Decoder, DecoderGrayscale};
     use archive::Archive;
-    use utils::{Metadata, Interpolator, Quantizator};
+    use utils::{Metadata, Interpolator, QuantizationLevel};
 
     type Pixel = image::Luma<u8>;
     type Subpixel = <Pixel as image::Pixel>::Subpixel;
@@ -36,7 +36,7 @@ mod tests {
 
     fn get_test_image(width: u32, height: u32, levels: usize) -> (Metadata, GrayscaleBuffer) {
         let metadata = Metadata {
-            quantizator: Quantizator::Loseless,
+            quantization_level: QuantizationLevel::Loseless,
             interpolator: Interpolator::Crossed,
             width: width,
             height: height,

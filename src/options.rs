@@ -1,6 +1,6 @@
 use std::path::PathBuf;
 
-use utils::Quantizator;
+use utils::QuantizationLevel;
 
 
 #[derive(StructOpt, Debug)]
@@ -58,8 +58,8 @@ pub struct EncodingOptions {
     #[structopt(
         short = "q",
         long = "quantizator",
-        raw(possible_values = "&Quantizator::variants()", case_insensitive = "true"),
+        raw(possible_values = "&QuantizationLevel::variants()", case_insensitive = "true"),
         default_value = "medium"
     )]
-    pub quantizator: Quantizator,
+    pub quantization_level: QuantizationLevel,
 }

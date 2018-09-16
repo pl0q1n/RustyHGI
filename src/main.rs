@@ -34,7 +34,7 @@ use utils::{GridU8, Interpolator, Metadata};
 fn encode(io: &IO, opts: &EncodingOptions) -> Result<(), Box<Error>> {
     let image = image::open(&io.input)?.to_luma();
     let metadata = Metadata {
-        quantizator: opts.quantizator,
+        quantization_level: opts.quantization_level,
         interpolator: Interpolator::Crossed,
         width: image.width(),
         height: image.height(),
@@ -62,7 +62,7 @@ fn decode(io: &IO) -> Result<(), Box<Error>> {
 fn test(input: &Path, suffix: &str, opts: &EncodingOptions) -> Result<(), Box<Error>> {
     let image_before = image::open(input)?.to_luma();
     let metadata = Metadata {
-        quantizator: opts.quantizator,
+        quantization_level: opts.quantization_level,
         interpolator: Interpolator::Crossed,
         width: image_before.width(),
         height: image_before.height(),

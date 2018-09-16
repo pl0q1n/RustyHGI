@@ -1,5 +1,5 @@
 use image::GrayImage;
-use utils::{interpolate, traverse_level, GridU8, Metadata, gray};
+use utils::{Quantizator, interpolate, traverse_level, GridU8, Metadata, gray};
 
 pub struct EncoderGrayscale {}
 
@@ -15,6 +15,7 @@ impl Encoder for EncoderGrayscale {
     type Output = GridU8;
 
     fn encode(&mut self, metadata: &Metadata, mut input: Self::Input) -> Self::Output {
+        let quantizator = Quantizator::new(metadata.quantization_level);
         let (width, height) = input.dimensions();
         let levels = metadata.scale_level;
         let mut grid = GridU8::new();
@@ -40,7 +41,7 @@ impl Encoder for EncoderGrayscale {
 
                 let actual_value = input.get_pixel(column, line).data[0];
                 let diff = actual_value.wrapping_sub(prediction);
-                let quanted_diff = metadata.quantizator.quantize(diff);
+                let quanted_diff = quantizator.quantize(diff);
 
                 grid[level + 1].push(quanted_diff);
                 let pixel = gray(prediction.wrapping_add(quanted_diff));

@@ -4,7 +4,7 @@ extern crate image;
 
 extern crate hgi;
 
-use hgi::{Metadata, Quantizator, Encoder, EncoderGrayscale, Interpolator};
+use hgi::{Metadata, QuantizationLevel, Encoder, EncoderGrayscale, Interpolator};
 
 use criterion::Criterion;
 
@@ -15,7 +15,7 @@ type GrayscaleBuffer = image::ImageBuffer<Pixel, Container>;
 
 fn get_test_image(width: u32, height: u32, levels: usize) -> (Metadata, GrayscaleBuffer) {
     let metadata = Metadata {
-        quantizator: Quantizator::Loseless,
+        quantization_level: QuantizationLevel::Loseless,
         interpolator: Interpolator::Crossed,
         width: width,
         height: height,
