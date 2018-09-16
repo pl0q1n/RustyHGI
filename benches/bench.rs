@@ -4,7 +4,7 @@ extern crate image;
 
 extern crate hgi;
 
-use hgi::{Metadata, Quantizator, Encoder, EncoderGrayscale, Interpolator};
+use hgi::{Metadata, QuantizationLevel, Encoder, EncoderGrayscale, Interpolator, Decoder, DecoderGrayscale};
 
 use criterion::Criterion;
 
@@ -15,7 +15,7 @@ type GrayscaleBuffer = image::ImageBuffer<Pixel, Container>;
 
 fn get_test_image(width: u32, height: u32, levels: usize) -> (Metadata, GrayscaleBuffer) {
     let metadata = Metadata {
-        quantizator: Quantizator::Loseless,
+        quantization_level: QuantizationLevel::Loseless,
         interpolator: Interpolator::Crossed,
         width: width,
         height: height,
@@ -39,11 +39,20 @@ fn benchmarks(c: &mut Criterion) {
             drop(encoder.encode(&metadata, image))
         );
     });
+
+    c.bench_function("decompression", |bencher| {
+        let (metadata, image) = get_test_image(1920, 1080, 4);
+        let mut encoder = EncoderGrayscale{};
+        let grid = encoder.encode(&metadata, image);
+        let mut decoder = DecoderGrayscale{};
+
+        bencher.iter_with_large_drop(|| decoder.decode(&metadata, &grid));
+    });
 }
 
 criterion_group!(
     name = benches;
-    config = Criterion::default().sample_size(10);
+    config = Criterion::default().sample_size(25);
     targets = benchmarks
 );
 criterion_main!(benches);

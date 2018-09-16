@@ -1,11 +1,10 @@
 [package]
-authors = ["pl0q1n <pl0q1n@gmail.com>"]
+authors = ["pl0q1n <pl0q1n@gmail.com>", "0xd34d10cc <0xd34d10cc@gmail.com>"]
 name = "hgi"
 version = "0.1.0"
 
 [dependencies]
 bincode = "1.0.1"
-bit-vec = "0.5.0"
 byteorder = "1.2.4"
 flate2 = "1.0.2"
 image = "0.19.0"
@@ -14,12 +13,12 @@ serde_derive = "1.0.73"
 clap = "2.32.0"
 structopt = "0.2.10"
 
-[profile.release]
-lto = true
-debug = true
+# [profile.release]
+# lto = true
+# debug = true
 
-[profile.bench]
-lto = true
+# [profile.bench]
+# lto = true
 
 [dev-dependencies]
 criterion = "0.2"

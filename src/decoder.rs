@@ -1,5 +1,5 @@
 use image::{GrayImage, ImageBuffer};
-use utils::{average, get_interp_pixels, gray, traverse_level, GridU8, Metadata};
+use utils::{interpolate, gray, traverse_level, GridU8, Metadata};
 
 pub struct DecoderGrayscale {}
 
@@ -14,45 +14,37 @@ impl Decoder for DecoderGrayscale {
     type Input = GridU8;
     type Output = GrayImage;
 
-    fn decode(&mut self, metadata: &Metadata, input: &Self::Input) -> Self::Output {
+    fn decode(&mut self, metadata: &Metadata, grid: &Self::Input) -> Self::Output {
         let (width, height) = (metadata.width, metadata.height);
         let mut img = ImageBuffer::new(width, height);
-        let levels = input.len() - 1;
+        let levels = grid.len() - 1;
 
-        let mut grid_ind = 0;
-
+        let mut index = 0;
         let level = 0;
         let step = 1 << levels;
         for line in (0..height).step_by(step) {
             for column in (0..width).step_by(step) {
-                let value = input[level][grid_ind];
+                let value = grid[level][index];
                 img.put_pixel(column, line, gray(value));
-                grid_ind += 1;
+                index += 1;
             }
         }
 
         for level in 0..levels {
-            let mut grid_ind = 0;
+            let mut index = 0;
 
             traverse_level(level, levels, width, height, |column, line| {
-                let post_inter_value = {
-                    let value = input[level + 1][grid_ind];
+                let diff = grid[level + 1][index];
+                let prediction = interpolate(
+                    levels,
+                    level + 1,
+                    (column, line),
+                    &img,
+                );
 
-                    let prediction = get_interp_pixels(
-                        levels,
-                        level + 1,
-                        (width, height),
-                        (column, line),
-                        &img,
-                        value,
-                    ).prediction();
-
-                    average(value, prediction) as u8
-                };
-
-                let pixel = gray(post_inter_value);
+                let pixel = gray(prediction.wrapping_add(diff));
                 img.put_pixel(column, line, pixel);
-                grid_ind += 1;
+                index += 1;
             });
         }
 

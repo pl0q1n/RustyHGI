@@ -8,8 +8,8 @@ pub fn gray(value: u8) -> Luma<u8> {
 }
 
 arg_enum! {
-#[derive(Clone, Copy, Serialize, Deserialize, Debug)]
-pub enum Quantizator {
+#[derive(Clone, Copy, Serialize, Deserialize, Debug, PartialEq, Eq)]
+pub enum QuantizationLevel {
     Loseless,
     Low,
     Medium,
@@ -17,51 +17,45 @@ pub enum Quantizator {
 }
 }
 
+pub struct Quantizator {
+    error: usize
+}
+
 impl Quantizator {
-    #[inline]
-    pub fn quantize(&self, value: u8) -> u8 {
-        let max_error = match self {
-            Quantizator::Loseless => return value,
-            Quantizator::Low => 10.0,
-            Quantizator::Medium => 20.0,
-            Quantizator::High => 30.0,
+    pub fn new(level: QuantizationLevel) -> Self {
+        let error = match level {
+            QuantizationLevel::Loseless => 0,
+            QuantizationLevel::Low => 10,
+            QuantizationLevel::Medium => 20,
+            QuantizationLevel::High => 30,
         };
 
-        ((2 * max_error as usize + 1)
-            * ((value as f64 + max_error) / (2.0 * max_error + 1.0)).floor() as usize
-            % 256) as u8
+        Quantizator { error }        
+    }
+    
+    #[inline]
+    pub fn quantize(&self, value: u8) -> u8 {
+        let scale = 2 * self.error + 1;
+        let r = (value as usize + self.error) / scale;
+        let v = r * scale;
+        v as u8
     }
 }
 
-#[derive(Clone, Serialize, Deserialize, Debug)]
+#[derive(Clone, Serialize, Deserialize, Debug, PartialEq, Eq)]
 pub enum Interpolator {
     Crossed,
     Line,
     Previous,
 }
 
-#[derive(Clone, Serialize, Deserialize, Debug)]
+#[derive(Clone, Serialize, Deserialize, Debug, PartialEq, Eq)]
 pub struct Metadata {
-    pub quantizator: Quantizator,
+    pub quantization_level: QuantizationLevel,
     pub interpolator: Interpolator,
     pub width: u32,
     pub height: u32,
     pub scale_level: usize,
-}
-
-#[inline(always)]
-pub fn is_on_prev_lvl(total_levels: usize, level: usize, x: u32) -> bool {
-    if x == 0 {
-        return level == 1;
-    }
-
-    let previous = level - 1;
-    x.trailing_zeros() == (total_levels as u32 - previous as u32)
-}
-
-#[inline(always)]
-pub fn average(x: u8, y: u8) -> usize {
-    (x as usize + y as usize + 1) / 2
 }
 
 #[derive(Default)]
@@ -75,10 +69,12 @@ pub struct CrossedValues {
 impl CrossedValues {
     #[inline]
     pub fn prediction(&self) -> u8 {
-        let left = average(self.left_top, self.left_bot);
+        let average = |x, y| (x as usize + y as usize + 1) / 2;
+
+        let left  = average(self.left_top,  self.left_bot);
         let right = average(self.right_bot, self.right_top);
-        let top = average(self.right_top, self.left_top);
-        let bot = average(self.right_bot, self.left_bot);
+        let top   = average(self.right_top, self.left_top);
+        let bot   = average(self.right_bot, self.left_bot);
 
         let average = (left + right + top + bot + 1) / 4;
 
@@ -114,53 +110,34 @@ where
     }
 }
 
-use std::cmp;
-
 #[inline]
-pub fn get_interp_pixels(
+pub fn interpolate(
     levels: usize,
     level: usize,
-    (width, height): (u32, u32),
-    (x, y): (u32, u32),
-    image: &ImageBuffer<Luma<u8>, Vec<u8>>,
-    default_val: u8,
-) -> CrossedValues {
-    let mut values = CrossedValues::default();
+    (x, y): (u32, u32), // column, line
+    image: &ImageBuffer<Luma<u8>, Vec<u8>>
+) -> u8 {
     // step size on previous level
     let step = 1 << (levels - level + 1);
-    let x_mod = x % step as u32;
-    let y_mod = y % step as u32;
+    let mask = step - 1;
 
-    let x_top = x - x_mod;
-    let x_bot = cmp::min(x + (step - x_mod), height - 1);
-    let y_left = y - y_mod;
-    let y_right = cmp::min(y + (step - y_mod), width - 1);
+    let x_top   = x - (x & mask); 
+    let y_left  = y - (y & mask);
+    let x_bot   = x_top + step;
+    let y_right = y_left + step;
 
-    let is_on_prev_lvl = |x| is_on_prev_lvl(levels, level, x);
+    let get_pixel = |x, y| {
+        if x < image.width() && y < image.height() {
+            image.get_pixel(x, y).data[0]
+        } else {
+            0
+        }
+    };
 
-    if is_on_prev_lvl(x_top)
-        && is_on_prev_lvl(x_bot)
-        && is_on_prev_lvl(y_left)
-        && is_on_prev_lvl(y_right)
-    {
-        let get_pixel = |x, y| image.get_pixel(x, y).data[0];
-
-        values.left_top  = get_pixel(x_top, y_left);
-        values.right_top = get_pixel(x_top, y_right);
-        values.left_bot  = get_pixel(x_bot, y_left);
-        values.right_bot = get_pixel(x_bot, y_right);
-    } else {
-        let get_pix_val = |x, y| {
-            if is_on_prev_lvl(x) && is_on_prev_lvl(y) {
-                image.get_pixel(x, y).data[0]
-            } else {
-                default_val
-            }
-        };
-        values.left_top  = get_pix_val(x_top, y_left);
-        values.right_top = get_pix_val(x_top, y_right);
-        values.left_bot  = get_pix_val(x_bot, y_left);
-        values.right_bot = get_pix_val(x_bot, y_right);
-    }
-    return values;
+    CrossedValues {
+        left_top:  get_pixel(x_top, y_left),
+        right_top: get_pixel(x_top, y_right),
+        left_bot:  get_pixel(x_bot, y_left),
+        right_bot: get_pixel(x_bot, y_right)
+    }.prediction()
 }
