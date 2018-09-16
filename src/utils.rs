@@ -18,7 +18,7 @@ pub enum QuantizationLevel {
 }
 
 pub struct Quantizator {
-    error: usize
+    table: [u8; 256]
 }
 
 impl Quantizator {
@@ -30,15 +30,23 @@ impl Quantizator {
             QuantizationLevel::High => 30,
         };
 
-        Quantizator { error }        
+        let scale = 2 * error + 1;
+        let quantize = |x| {
+            let r = (x as usize + error) / scale;
+            let v = r * scale;
+            v as u8
+        };
+
+        let mut table = [0; 256];
+        for x in 0..table.len() {
+            table[x] = quantize(x as u8);
+        }
+        Quantizator { table }        
     }
     
     #[inline]
     pub fn quantize(&self, value: u8) -> u8 {
-        let scale = 2 * self.error + 1;
-        let r = (value as usize + self.error) / scale;
-        let v = r * scale;
-        v as u8
+        self.table[value as usize]
     }
 }
 
