@@ -1,12 +1,18 @@
 #[macro_use]
 extern crate criterion;
 extern crate image;
+extern crate serde;
+extern crate bincode;
+extern crate flate2;
 
 extern crate hgi;
 
-use hgi::{Metadata, QuantizationLevel, Encoder, EncoderGrayscale, Interpolator, Decoder, DecoderGrayscale};
+use std::io::Write;
+
+use hgi::{Metadata, QuantizationLevel, Encoder, EncoderGrayscale, Interpolator, Decoder, DecoderGrayscale, Archive};
 
 use criterion::Criterion;
+use flate2::{Compression, write::DeflateEncoder};
 
 type Pixel = image::Luma<u8>;
 type Subpixel = <Pixel as image::Pixel>::Subpixel;
@@ -15,7 +21,7 @@ type GrayscaleBuffer = image::ImageBuffer<Pixel, Container>;
 
 fn get_test_image(width: u32, height: u32, levels: usize) -> (Metadata, GrayscaleBuffer) {
     let metadata = Metadata {
-        quantization_level: QuantizationLevel::Loseless,
+        quantization_level: QuantizationLevel::Medium,
         interpolator: Interpolator::Crossed,
         width: width,
         height: height,
@@ -47,6 +53,18 @@ fn benchmarks(c: &mut Criterion) {
         let mut decoder = DecoderGrayscale{};
 
         bencher.iter_with_large_drop(|| decoder.decode(&metadata, &grid));
+    });
+
+    c.bench_function("serialization", |bencher| {
+        let (metadata, image) = get_test_image(1920, 1080, 4);
+        let mut encoder = EncoderGrayscale{};
+        let grid = encoder.encode(&metadata, image);
+        let archive = Archive { metadata, grid };
+        let serialized_size = bincode::serialized_size(&archive).unwrap() as usize;
+
+        bencher.iter_with_large_setup(|| Vec::with_capacity(serialized_size), |mut buffer| {
+            archive.serialize_to_writer(&mut buffer).unwrap();
+        });
     });
 }
 

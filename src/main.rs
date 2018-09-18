@@ -13,7 +13,7 @@ extern crate structopt;
 extern crate serde_derive;
 
 use std::error::Error;
-use std::io::Write;
+use std::io::{Write, BufWriter, BufReader};
 use std::fs::File;
 use std::path::Path;
 
@@ -45,14 +45,14 @@ fn encode(io: &IO, opts: &EncodingOptions) -> Result<(), Box<Error>> {
     let mut encoder = EncoderGrayscale {};
     let grid = encoder.encode(&metadata, image);
     let archive = Archive { metadata, grid };
-    let mut output = File::create(&io.output)?;
+    let mut output = BufWriter::new(File::create(&io.output)?);
     archive.serialize_to_writer(&mut output)?;
 
     Ok(())
 }
 
 fn decode(io: &IO) -> Result<(), Box<Error>> {
-    let mut input = File::open(&io.input)?;
+    let mut input = BufReader::new(File::open(&io.input)?);
     let archive = Archive::<GridU8>::deserialize_from_reader(&mut input)?;
     let mut decoder = DecoderGrayscale {};
     let image = decoder.decode(&archive.metadata, &archive.grid);
@@ -101,7 +101,7 @@ fn test(input: &Path, suffix: &str, opts: &EncodingOptions) -> Result<(), Box<Er
     let filename = input.file_stem().unwrap().to_string_lossy().into_owned() + suffix;
     image_after.save(filename.clone() + ".png")?;
 
-    let mut output = File::create(filename + ".hgi")?;
+    let mut output = BufWriter::new(File::create(filename + ".hgi")?);
     output.write_all(&buffer)?;
 
     Ok(())
