@@ -21,8 +21,12 @@ impl<G: Serialize + DeserializeOwned> Archive<G> {
     pub fn serialize_to_writer<W: Write>(&self, mut w: &mut W) -> Result<(), Box<Error>> {
         w.write_u32::<LE>(MAGIC)?;
         bincode::serialize_into(&mut w, &self.metadata)?;
-        let mut encoder = DeflateEncoder::new(w, Compression::best());
-        bincode::serialize_into(&mut encoder, &self.grid)?;
+        let mut buffer = Vec::with_capacity(bincode::serialized_size(&self.grid)? as usize);
+        bincode::serialize_into(&mut buffer, &self.grid)?;
+        let mut encoder = DeflateEncoder::new(Vec::new(), Compression::best());
+        encoder.write_all(&buffer)?;
+        let compressed_bytes = encoder.finish()?;
+        w.write_all(&compressed_bytes)?;
         Ok(())
     }
 
