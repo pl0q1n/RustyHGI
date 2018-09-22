@@ -10,7 +10,7 @@ pub fn gray(value: u8) -> Luma<u8> {
 arg_enum! {
 #[derive(Clone, Copy, Serialize, Deserialize, Debug, PartialEq, Eq)]
 pub enum QuantizationLevel {
-    Loseless,
+    Lossless,
     Low,
     Medium,
     High,
@@ -24,7 +24,7 @@ pub struct Quantizator {
 impl Quantizator {
     pub fn new(level: QuantizationLevel) -> Self {
         let error = match level {
-            QuantizationLevel::Loseless => 0,
+            QuantizationLevel::Lossless => 0,
             QuantizationLevel::Low => 10,
             QuantizationLevel::Medium => 20,
             QuantizationLevel::High => 30,
