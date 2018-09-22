@@ -57,16 +57,8 @@ mod tests {
         (metadata, imgbuf)
     }
 
-    #[test]
-    fn max_error() {
-        let quantizators = vec![
-            QuantizationLevel::Lossless,
-            QuantizationLevel::Low,
-            QuantizationLevel::Medium,
-            QuantizationLevel::High,
-        ];
-        for quantizator in quantizators {
-            let (metadata, imgbuf) = get_test_image(8, 8, 3, quantizator);
+    fn test_error(quantizator: QuantizationLevel) {
+        let (metadata, imgbuf) = get_test_image(8, 8, 3, quantizator);
 
             for line in imgbuf.chunks(imgbuf.width() as usize) {
                 println!("{:2?}", line);
@@ -97,9 +89,27 @@ mod tests {
                 let diff = (before - after).abs();
                 assert!(diff <= expected_error);
             }
-        }
     }
 
+    #[test]
+    fn lossless_compression() {
+        test_error(QuantizationLevel::Lossless);
+    }
+
+    #[test]
+    fn low_compression() {
+        test_error(QuantizationLevel::Low);
+    }
+
+    #[test]
+    fn medium_compression() {
+        test_error(QuantizationLevel::Medium);
+    }
+
+    #[test]
+    fn high_compression() {
+        test_error(QuantizationLevel::High);
+    }
     #[test]
     fn serde() {
         let (metadata, imgbuf) = get_test_image(8, 8, 3, QuantizationLevel::Lossless);
