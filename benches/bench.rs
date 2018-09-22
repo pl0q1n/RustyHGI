@@ -1,12 +1,15 @@
 #[macro_use]
 extern crate criterion;
-extern crate image;
 extern crate bincode;
 extern crate hgi;
+extern crate image;
 
-use hgi::{Metadata, QuantizationLevel, Encoder, EncoderGrayscale, Interpolator, Decoder, DecoderGrayscale, Archive};
+use hgi::{
+    Archive, Decoder, DecoderGrayscale, Encoder, EncoderGrayscale, Interpolator, Metadata,
+    QuantizationLevel,
+};
 
-use criterion::Criterion;
+use criterion::{Benchmark, Criterion, Throughput};
 
 type Pixel = image::Luma<u8>;
 type Subpixel = <Pixel as image::Pixel>::Subpixel;
@@ -32,44 +35,60 @@ fn get_test_image(width: u32, height: u32, levels: usize) -> (Metadata, Grayscal
 }
 
 fn benchmarks(c: &mut Criterion) {
-    c.bench_function("encode", |bencher| {
-        let (metadata, image) = get_test_image(1920, 1080, 4);
-        let mut encoder = EncoderGrayscale {};
-        bencher.iter_with_large_setup(|| image.clone(), |image| 
-            drop(encoder.encode(&metadata, image))
-        );
-    });
+    c.bench(
+        "encode",
+        Benchmark::new("encode", |bencher| {
+            let (metadata, image) = get_test_image(1920, 1080, 4);
+            let mut encoder = EncoderGrayscale {};
+            bencher.iter_with_large_setup(
+                || image.clone(),
+                |image| drop(encoder.encode(&metadata, image)),
+            );
+        }).throughput(Throughput::Bytes(1920 * 1080)),
+    );
 
-    c.bench_function("decode", |bencher| {
-        let (metadata, image) = get_test_image(1920, 1080, 4);
-        let mut encoder = EncoderGrayscale{};
-        let grid = encoder.encode(&metadata, image);
-        let mut decoder = DecoderGrayscale{};
+    c.bench(
+        "decode",
+        Benchmark::new("decode", |bencher| {
+            let (metadata, image) = get_test_image(1920, 1080, 4);
+            let mut encoder = EncoderGrayscale {};
+            let grid = encoder.encode(&metadata, image);
+            let mut decoder = DecoderGrayscale {};
 
-        bencher.iter_with_large_drop(|| decoder.decode(&metadata, &grid));
-    });
+            bencher.iter_with_large_drop(|| decoder.decode(&metadata, &grid));
+        }).throughput(Throughput::Bytes(1920 * 1080)),
+    );
 
     c.bench_function("serialization", |bencher| {
         let (metadata, image) = get_test_image(1920, 1080, 4);
-        let mut encoder = EncoderGrayscale{};
+        let mut encoder = EncoderGrayscale {};
         let grid = encoder.encode(&metadata, image);
         let archive = Archive { metadata, grid };
         let serialized_size = bincode::serialized_size(&archive).unwrap() as usize;
 
-        bencher.iter_with_large_setup(|| Vec::with_capacity(serialized_size), |mut buffer| {
-            archive.serialize_to_writer(&mut buffer).unwrap();
-        });
+        bencher.iter_with_large_setup(
+            || Vec::with_capacity(serialized_size),
+            |mut buffer| {
+                archive.serialize_to_writer(&mut buffer).unwrap();
+            },
+        );
     });
 
     c.bench_function("compression", |bencher| {
         let (metadata, image) = get_test_image(1920, 1080, 4);
         let mut encoder = EncoderGrayscale {};
-        
-        bencher.iter_with_large_setup(|| (Vec::with_capacity(1920*1080), image.clone()), |(mut buffer, image)| {
-            let grid = encoder.encode(&metadata, image);
-            let archive = Archive { metadata: metadata.clone(), grid };
-            archive.serialize_to_writer(&mut buffer).unwrap();
-        });
+
+        bencher.iter_with_large_setup(
+            || (Vec::with_capacity(1920 * 1080), image.clone()),
+            |(mut buffer, image)| {
+                let grid = encoder.encode(&metadata, image);
+                let archive = Archive {
+                    metadata: metadata.clone(),
+                    grid,
+                };
+                archive.serialize_to_writer(&mut buffer).unwrap();
+            },
+        );
     });
 }
 
