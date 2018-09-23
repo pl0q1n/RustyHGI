@@ -77,16 +77,11 @@ mod tests {
             for line in image.chunks(image.width() as usize) {
                 println!("{:2?}", line);
             }
-            let expected_error = match quantizator {
-                QuantizationLevel::Lossless => 0,
-                QuantizationLevel::Low => 10,
-                QuantizationLevel::Medium => 20,
-                QuantizationLevel::High => 30,
-            };
+            let expected_error = quantizator.max_error();
             for (x, y, pixel) in imgbuf.enumerate_pixels() {
                 let before = pixel.data[0] as i32;
                 let after = image[(x, y)].data[0] as i32;
-                let diff = (before - after).abs();
+                let diff = (before - after).abs() as usize;
                 assert!(diff <= expected_error);
             }
     }
@@ -110,6 +105,7 @@ mod tests {
     fn high_compression() {
         test_error(QuantizationLevel::High);
     }
+
     #[test]
     fn serde() {
         let (metadata, imgbuf) = get_test_image(8, 8, 3, QuantizationLevel::Lossless);

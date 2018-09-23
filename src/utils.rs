@@ -17,18 +17,25 @@ pub enum QuantizationLevel {
 }
 }
 
+impl QuantizationLevel {
+    pub fn max_error(&self) -> usize {
+        let error = match self {
+            QuantizationLevel::Lossless => 0,
+            QuantizationLevel::Low => 10,
+            QuantizationLevel::Medium => 20,
+            QuantizationLevel::High => 30,
+        };
+        return error;
+    }
+}
+
 pub struct Quantizator {
     table: [u8; 256]
 }
 
 impl Quantizator {
     pub fn new(level: QuantizationLevel) -> Self {
-        let error = match level {
-            QuantizationLevel::Lossless => 0,
-            QuantizationLevel::Low => 10,
-            QuantizationLevel::Medium => 20,
-            QuantizationLevel::High => 30,
-        };
+        let error = level.max_error();
 
         let scale = 2 * error + 1;
         let quantize = |x| {
