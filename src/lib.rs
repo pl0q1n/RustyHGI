@@ -23,72 +23,58 @@ pub use self::archive::{Archive, Metadata};
 
 #[cfg(test)]
 mod tests {
-    use image;
+    use image::{GrayImage, Luma};
     use std::io;
 
     use interpolator::{Crossed, InterpolationType};
-    use quantizator::{Linear, QuantizationLevel};
+    use quantizator::{Quantizator, Linear, QuantizationLevel};
     use encoder::Encoder;
     use decoder::Decoder;
     use archive::{Archive, Metadata};
 
-    type Pixel = image::Luma<u8>;
-    type Subpixel = <Pixel as image::Pixel>::Subpixel;
-    type Container = Vec<Subpixel>;
-    type GrayscaleBuffer = image::ImageBuffer<Pixel, Container>;
-
     fn get_test_image(
         width: u32,
         height: u32,
-        levels: usize,
-        quantizator: QuantizationLevel,
-    ) -> (Metadata, GrayscaleBuffer) {
-        let metadata = Metadata {
-            quantization_level: QuantizationLevel::Lossless,
-            interpolation: InterpolationType::Crossed,
-            width: width,
-            height: height,
-            scale_level: levels,
-        };
-
-        let mut imgbuf = image::ImageBuffer::new(width, height);
-        for (x, y, pixel) in imgbuf.enumerate_pixels_mut() {
-            *pixel = image::Luma([(x * y) as u8]);
+    ) -> GrayImage {
+        let mut image = GrayImage::new(width, height);
+        for (x, y, pixel) in image.enumerate_pixels_mut() {
+            *pixel = Luma([(x * y) as u8]);
         }
 
-        (metadata, imgbuf)
+        image
     }
 
     fn test_error(quantization_level: QuantizationLevel) {
         let levels = 3;
         let (width, height) = (8, 8);
-        let (metadata, imgbuf) = get_test_image(width, height, levels, quantization_level);
+        let image = get_test_image(width, height);
 
-        for line in imgbuf.chunks(imgbuf.width() as usize) {
+        for line in image.chunks(image.width() as usize) {
             println!("{:2?}", line);
         }
 
         let quantizator = Linear::from(quantization_level);
+        let max_error = quantizator.max_error() as usize;
         let interpolator = Crossed;
         let mut encoder = Encoder::new(interpolator, quantizator, levels);
-        let grid = encoder.encode(imgbuf.clone());
+        let grid = encoder.encode(image.clone());
 
         let mut decoder = Decoder::new(Crossed);
         let image = decoder.decode((width, height), &grid);
 
         let line: String = ::std::iter::repeat('-')
-            .take(imgbuf.width() as usize * 4)
+            .take(image.width() as usize * 4)
             .collect();
         println!("{}", line);
         for line in image.chunks(image.width() as usize) {
             println!("{:2?}", line);
         }
-        let expected_error = quantization_level.max_error();
-        for (x, y, pixel) in imgbuf.enumerate_pixels() {
+
+        for (x, y, pixel) in image.enumerate_pixels() {
             let before = pixel.data[0] as i32;
             let after = image[(x, y)].data[0] as i32;
             let diff = (before - after).abs() as usize;
-            assert!(diff <= expected_error);
+            assert!(diff <= max_error);
         }
     }
 
@@ -115,11 +101,21 @@ mod tests {
     #[test]
     fn serde() {
         let levels = 3;
-        let (metadata, imgbuf) = get_test_image(8, 8, levels, QuantizationLevel::Lossless);
+        let (width, height) = (8, 8);
+        let image = get_test_image(8, 8);
         let interpolator = Crossed;
-        let quantizator = Linear::from(QuantizationLevel::Lossless);
+        let quantization_level = QuantizationLevel::Lossless;
+        let quantizator = Linear::from(quantization_level);
         let mut encoder = Encoder::new(interpolator, quantizator, levels);
-        let grid = encoder.encode(imgbuf);
+        let grid = encoder.encode(image);
+
+        let metadata = Metadata {
+            quantization_level,
+            interpolation: InterpolationType::Crossed,
+            width,
+            height,
+            scale_level: levels
+        };
         let archive = Archive { metadata, grid };
         let mut buffer = Vec::new();
         let res = archive.serialize_to_writer(&mut buffer);

@@ -11,24 +11,26 @@ pub enum QuantizationLevel {
 
 pub trait Quantizator : From<QuantizationLevel> {
     fn quantize(&self, value: u8) -> u8;
+    fn max_error(&self) -> u8;
 }
 
 pub struct Linear {
-    table: [u8; 256]
+    table: [u8; 256],
+    error: u8
 }
 
 impl From<QuantizationLevel> for Linear {
     fn from(level: QuantizationLevel) -> Self {
-        let error = match level {
+        let error: u8 = match level {
             QuantizationLevel::Lossless => 0,
             QuantizationLevel::Low => 10,
             QuantizationLevel::Medium => 20,
             QuantizationLevel::High => 30,
         };
 
-        let scale = 2 * error + 1;
+        let scale = 2 * error as usize + 1;
         let quantize = |x| {
-            let r = (x as usize + error) / scale;
+            let r = (x as usize + error as usize) / scale;
             let v = r * scale;
             v as u8
         };
@@ -37,7 +39,7 @@ impl From<QuantizationLevel> for Linear {
         for x in 0..table.len() {
             table[x] = quantize(x as u8);
         }
-        Linear { table }
+        Linear { table, error }
     }
 }
 
@@ -45,5 +47,9 @@ impl Quantizator for Linear {
     #[inline(always)]
     fn quantize(&self, value: u8) -> u8 {
         self.table[value as usize]
+    }
+
+    fn max_error(&self) -> u8 {
+        self.error
     }
 }
