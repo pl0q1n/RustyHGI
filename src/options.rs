@@ -1,6 +1,6 @@
 use std::path::PathBuf;
 
-use utils::QuantizationLevel;
+use quantizator::QuantizationLevel;
 
 
 #[derive(StructOpt, Debug)]

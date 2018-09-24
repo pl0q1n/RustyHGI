@@ -17,22 +17,20 @@ pub mod interpolator;
 pub mod quantizator;
 mod utils;
 
-pub use self::archive::Archive;
-pub use self::decoder::Decoder;
 pub use self::encoder::Encoder;
-pub use self::utils::{InterpolationType, Metadata, QuantizationLevel};
+pub use self::decoder::Decoder;
+pub use self::archive::{Archive, Metadata};
 
 #[cfg(test)]
 mod tests {
     use image;
     use std::io;
 
-    use archive::Archive;
-    use decoder::Decoder;
+    use interpolator::{Crossed, InterpolationType};
+    use quantizator::{Linear, QuantizationLevel};
     use encoder::Encoder;
-    use interpolator::Crossed;
-    use quantizator::Linear;
-    use utils::{InterpolationType, Metadata, QuantizationLevel};
+    use decoder::Decoder;
+    use archive::{Archive, Metadata};
 
     type Pixel = image::Luma<u8>;
     type Subpixel = <Pixel as image::Pixel>::Subpixel;

@@ -7,9 +7,19 @@ use flate2::{read::DeflateDecoder, write::DeflateEncoder, Compression};
 use serde::de::DeserializeOwned;
 use serde::Serialize;
 
-use utils::Metadata;
+use interpolator::InterpolationType;
+use quantizator::QuantizationLevel;
 
 const MAGIC: u32 = 0xBAADA555;
+
+#[derive(Clone, Serialize, Deserialize, Debug, PartialEq, Eq)]
+pub struct Metadata {
+    pub quantization_level: QuantizationLevel,
+    pub interpolation: InterpolationType,
+    pub width: u32,
+    pub height: u32,
+    pub scale_level: usize,
+}
 
 #[derive(Serialize, Deserialize, Debug, PartialEq, Eq)]
 pub struct Archive<G> {

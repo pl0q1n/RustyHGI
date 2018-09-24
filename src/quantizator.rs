@@ -1,4 +1,13 @@
-use utils::QuantizationLevel;
+arg_enum! {
+#[derive(Clone, Copy, Serialize, Deserialize, Debug, PartialEq, Eq)]
+pub enum QuantizationLevel {
+    Lossless,
+    Low,
+    Medium,
+    High,
+}
+}
+
 
 pub trait Quantizator : From<QuantizationLevel> {
     fn quantize(&self, value: u8) -> u8;

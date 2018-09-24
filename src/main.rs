@@ -27,13 +27,14 @@ mod utils;
 mod quantizator;
 mod interpolator;
 
-use archive::Archive;
+use archive::{Archive, Metadata};
+use interpolator::InterpolationType;
 use decoder::Decoder;
 use encoder::Encoder;
 use interpolator::Crossed;
 use quantizator::Linear;
 use options::{IO, EncodingOptions, Opts};
-use utils::{GridU8, InterpolationType, Metadata};
+use utils::GridU8;
 
 
 fn encode(io: &IO, opts: &EncodingOptions) -> Result<(), Box<Error>> {

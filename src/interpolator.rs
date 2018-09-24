@@ -1,5 +1,13 @@
 use image::GrayImage;
 
+
+#[derive(Clone, Serialize, Deserialize, Debug, PartialEq, Eq)]
+pub enum InterpolationType {
+    Crossed,
+    Line,
+    Previous,
+}
+
 pub trait Interpolator {
     fn interpolate(&self, levels: usize, level: usize, at: (u32, u32), image: &GrayImage) -> u8;
 }

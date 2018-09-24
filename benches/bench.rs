@@ -6,9 +6,9 @@ extern crate image;
 
 use image::GrayImage;
 
-use hgi::interpolator::Crossed;
-use hgi::quantizator::Linear;
-use hgi::{Archive, Decoder, Encoder, InterpolationType, Metadata, QuantizationLevel};
+use hgi::interpolator::{Crossed, InterpolationType};
+use hgi::quantizator::{Linear, QuantizationLevel};
+use hgi::{Archive, Decoder, Encoder, Metadata};
 
 use criterion::{Benchmark, Criterion, Throughput};
 
