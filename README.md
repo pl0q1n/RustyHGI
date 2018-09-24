@@ -1,4 +1,4 @@
-# HGI IMAGE COMPRESSION #
+# HGI image compression #
 
 HGI (Hierarchical Grid Interpolation) is a next generation image compression algorithm, the basic idea of the hierarchical grid interpolation method is to hierarchically decimating the two-dimensional grid of image counts, restoring missing counts via interpolation and statistical coding for interpolation residues.
 
