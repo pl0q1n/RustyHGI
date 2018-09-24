@@ -7,32 +7,6 @@ pub fn gray(value: u8) -> Luma<u8> {
     Luma { data: [value] }
 }
 
-arg_enum! {
-#[derive(Clone, Copy, Serialize, Deserialize, Debug, PartialEq, Eq)]
-pub enum QuantizationLevel {
-    Lossless,
-    Low,
-    Medium,
-    High,
-}
-}
-
-#[derive(Clone, Serialize, Deserialize, Debug, PartialEq, Eq)]
-pub enum InterpolationType {
-    Crossed,
-    Line,
-    Previous,
-}
-
-#[derive(Clone, Serialize, Deserialize, Debug, PartialEq, Eq)]
-pub struct Metadata {
-    pub quantization_level: QuantizationLevel,
-    pub interpolation: InterpolationType,
-    pub width: u32,
-    pub height: u32,
-    pub scale_level: usize,
-}
-
 #[inline]
 pub fn traverse_level<F>(level: usize, levels: usize, width: u32, height: u32, mut f: F)
 where
