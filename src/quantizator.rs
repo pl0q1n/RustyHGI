@@ -11,7 +11,7 @@ pub enum QuantizationLevel {
 
 pub trait Quantizator : From<QuantizationLevel> {
     fn quantize(&self, value: u8) -> u8;
-    fn max_error(&self) -> u8;
+    fn error(&self) -> u8;
 }
 
 pub struct Linear {
@@ -49,7 +49,7 @@ impl Quantizator for Linear {
         self.table[value as usize]
     }
 
-    fn max_error(&self) -> u8 {
+    fn error(&self) -> u8 {
         self.error
     }
 }

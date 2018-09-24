@@ -54,7 +54,7 @@ mod tests {
         }
 
         let quantizator = Linear::from(quantization_level);
-        let max_error = quantizator.max_error() as usize;
+        let max_error = quantizator.error() as usize;
         let interpolator = Crossed;
         let mut encoder = Encoder::new(interpolator, quantizator, levels);
         let grid = encoder.encode(image.clone());
