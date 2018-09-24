@@ -68,8 +68,8 @@ mod tests {
         }
 
         for (x, y, pixel) in image.enumerate_pixels() {
-            let before = pixel.data[0] as i32;
-            let after = image[(x, y)].data[0] as i32;
+            let before = i32::from(pixel.data[0]);
+            let after = i32::from(image[(x, y)].data[0]);
             let diff = (before - after).abs() as usize;
             assert!(diff <= max_error);
         }

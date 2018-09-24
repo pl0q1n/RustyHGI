@@ -36,8 +36,8 @@ impl From<QuantizationLevel> for Linear {
         };
 
         let mut table = [0; 256];
-        for x in 0..table.len() {
-            table[x] = quantize(x as u8);
+        for (i, entry) in table.iter_mut().enumerate() {
+            *entry = quantize(i as u8);
         }
         Linear { table, error }
     }

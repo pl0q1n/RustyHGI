@@ -61,6 +61,7 @@ where
 
             traverse_level(level, levels, width, height, process_pixel);
         }
-        return grid;
+
+        grid
     }
 }

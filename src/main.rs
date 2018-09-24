@@ -85,7 +85,7 @@ fn test(input: &Path, suffix: &str, opts: &EncodingOptions) -> Result<(), Box<Er
         let before = before.data[0];
         let after = image_after[(x, y)].data[0];
 
-        let diff = (before as i32 - after as i32).abs() as usize;
+        let diff = (i32::from(before) - i32::from(after)).abs() as usize;
 
         sd += diff * diff;
     }
@@ -106,7 +106,7 @@ fn test(input: &Path, suffix: &str, opts: &EncodingOptions) -> Result<(), Box<Er
     let compressed = buffer.len();
     println!("Uncompressed: {} kb", uncompressed / 1024);
     println!("Compressed:   {} kb", compressed / 1024);
-    println!("Ratio:        {:.2}", uncompressed as f64 / compressed as f64);
+    println!("Ratio:        {:.2}", f64::from(uncompressed) / compressed as f64);
     println!("SD:           {:.2}", (sd as f64).sqrt());
 
     let filename = input.file_stem().unwrap().to_string_lossy().into_owned() + suffix;

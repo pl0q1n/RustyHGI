@@ -10,7 +10,7 @@ use serde::Serialize;
 use interpolator::InterpolationType;
 use quantizator::QuantizationLevel;
 
-const MAGIC: u32 = 0xBAADA555;
+const MAGIC: u32 = 0xBAAD_A555;
 
 #[derive(Clone, Serialize, Deserialize, Debug, PartialEq, Eq)]
 pub struct Metadata {
