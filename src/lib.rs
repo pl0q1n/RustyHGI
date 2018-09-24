@@ -17,25 +17,22 @@ pub mod interpolator;
 pub mod quantizator;
 mod utils;
 
-pub use self::encoder::Encoder;
-pub use self::decoder::Decoder;
 pub use self::archive::{Archive, Metadata};
+pub use self::decoder::Decoder;
+pub use self::encoder::Encoder;
 
 #[cfg(test)]
 mod tests {
     use image::{GrayImage, Luma};
     use std::io;
 
-    use interpolator::{Crossed, InterpolationType};
-    use quantizator::{Quantizator, Linear, QuantizationLevel};
-    use encoder::Encoder;
-    use decoder::Decoder;
     use archive::{Archive, Metadata};
+    use decoder::Decoder;
+    use encoder::Encoder;
+    use interpolator::{Crossed, InterpolationType};
+    use quantizator::{Linear, QuantizationLevel, Quantizator};
 
-    fn get_test_image(
-        width: u32,
-        height: u32,
-    ) -> GrayImage {
+    fn get_test_image(width: u32, height: u32) -> GrayImage {
         let mut image = GrayImage::new(width, height);
         for (x, y, pixel) in image.enumerate_pixels_mut() {
             *pixel = Luma([(x * y) as u8]);
@@ -114,7 +111,7 @@ mod tests {
             interpolation: InterpolationType::Crossed,
             width,
             height,
-            scale_level: levels
+            scale_level: levels,
         };
         let archive = Archive { metadata, grid };
         let mut buffer = Vec::new();
