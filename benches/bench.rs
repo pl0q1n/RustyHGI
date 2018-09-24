@@ -37,7 +37,7 @@ fn benchmarks(c: &mut Criterion) {
             let levels = 4;
             let (_metadata, image) = get_test_image(1920, 1080, levels);
             let interpolator = Crossed;
-            let quantizator = Linear::from(QuantizationLevel::Loseless);
+            let quantizator = Linear::from(QuantizationLevel::Lossless);
             let mut encoder = Encoder::new(interpolator, quantizator, levels);
             bencher.iter_with_large_setup(|| image.clone(), |image| drop(encoder.encode(image)));
         }).throughput(Throughput::Bytes(1920 * 1080)),
@@ -50,7 +50,7 @@ fn benchmarks(c: &mut Criterion) {
             let (width, height) = (1920, 1080);
             let (_metadata, image) = get_test_image(width, height, levels);
             let interpolator = Crossed;
-            let quantizator = Linear::from(QuantizationLevel::Loseless);
+            let quantizator = Linear::from(QuantizationLevel::Lossless);
             let mut encoder = Encoder::new(interpolator, quantizator, levels);
             let grid = encoder.encode(image);
             let mut decoder = Decoder::new(Crossed);
@@ -64,7 +64,7 @@ fn benchmarks(c: &mut Criterion) {
         let (width, height) = (1920, 1080);
         let (metadata, image) = get_test_image(width, height, levels);
         let interpolator = Crossed;
-        let quantizator = Linear::from(QuantizationLevel::Loseless);
+        let quantizator = Linear::from(QuantizationLevel::Lossless);
         let mut encoder = Encoder::new(interpolator, quantizator, levels);
         let grid = encoder.encode(image);
         let archive = Archive { metadata, grid };
@@ -83,7 +83,7 @@ fn benchmarks(c: &mut Criterion) {
         let (width, height) = (1920, 1080);
         let (metadata, image) = get_test_image(width, height, levels);
         let interpolator = Crossed;
-        let quantizator = Linear::from(QuantizationLevel::Loseless);
+        let quantizator = Linear::from(QuantizationLevel::Lossless);
         let mut encoder = Encoder::new(interpolator, quantizator, levels);
 
         bencher.iter_with_large_setup(
