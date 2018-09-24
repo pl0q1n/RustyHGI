@@ -24,26 +24,33 @@ mod decoder;
 mod encoder;
 mod options;
 mod utils;
+mod quantizator;
+mod interpolator;
 
 use archive::Archive;
-use decoder::{Decoder, DecoderGrayscale};
-use encoder::{Encoder, EncoderGrayscale};
+use decoder::Decoder;
+use encoder::Encoder;
+use interpolator::Crossed;
+use quantizator::Linear;
 use options::{IO, EncodingOptions, Opts};
-use utils::{GridU8, Interpolator, Metadata};
+use utils::{GridU8, InterpolationType, Metadata};
 
 
 fn encode(io: &IO, opts: &EncodingOptions) -> Result<(), Box<Error>> {
     let image = image::open(&io.input)?.to_luma();
+    let quantizator = Linear::from(opts.quantization_level);
+    let interpolator = Crossed;
+    let mut encoder = Encoder::new(interpolator, quantizator, opts.level);
+    let (width, height) = image.dimensions();
+    let grid = encoder.encode(image);
+
     let metadata = Metadata {
         quantization_level: opts.quantization_level,
-        interpolator: Interpolator::Crossed,
-        width: image.width(),
-        height: image.height(),
+        interpolation: InterpolationType::Crossed,
+        width,
+        height,
         scale_level: opts.level,
     };
-
-    let mut encoder = EncoderGrayscale {};
-    let grid = encoder.encode(&metadata, image);
     let archive = Archive { metadata, grid };
     let mut output = BufWriter::new(File::create(&io.output)?);
     archive.serialize_to_writer(&mut output)?;
@@ -54,27 +61,23 @@ fn encode(io: &IO, opts: &EncodingOptions) -> Result<(), Box<Error>> {
 fn decode(io: &IO) -> Result<(), Box<Error>> {
     let mut input = BufReader::new(File::open(&io.input)?);
     let archive = Archive::<GridU8>::deserialize_from_reader(&mut input)?;
-    let mut decoder = DecoderGrayscale {};
-    let image = decoder.decode(&archive.metadata, &archive.grid);
+    let dimensions = (archive.metadata.width, archive.metadata.height);
+    let mut decoder = Decoder::new(Crossed);
+    let image = decoder.decode(dimensions, &archive.grid);
     image.save(&io.output)?;
     Ok(())
 }
 
 fn test(input: &Path, suffix: &str, opts: &EncodingOptions) -> Result<(), Box<Error>> {
     let image_before = image::open(input)?.to_luma();
-    let metadata = Metadata {
-        quantization_level: opts.quantization_level,
-        interpolator: Interpolator::Crossed,
-        width: image_before.width(),
-        height: image_before.height(),
-        scale_level: opts.level,
-    };
 
-    let mut encoder = EncoderGrayscale{};
-    let grid = encoder.encode(&metadata, image_before.clone());
+    let quantizator = Linear::from(opts.quantization_level);
+    let interpolator = Crossed;
+    let mut encoder = Encoder::new(interpolator, quantizator, opts.level);
+    let grid = encoder.encode(image_before.clone());
 
-    let mut decoder = DecoderGrayscale {};
-    let image_after = decoder.decode(&metadata, &grid);
+    let mut decoder = Decoder::new(Crossed);
+    let image_after = decoder.decode(image_before.dimensions(), &grid);
 
     let mut sd = 0usize;
     for (x, y, before) in image_before.enumerate_pixels() {
@@ -86,6 +89,13 @@ fn test(input: &Path, suffix: &str, opts: &EncodingOptions) -> Result<(), Box<Er
         sd += diff * diff;
     }
 
+    let metadata = Metadata {
+        quantization_level: opts.quantization_level,
+        interpolation: InterpolationType::Crossed,
+        width: image_before.width(),
+        height: image_before.height(),
+        scale_level: opts.level,
+    };
     let archive = Archive { metadata, grid };
     let mut buffer = Vec::new();
     archive.serialize_to_writer(&mut buffer)?;

@@ -1,23 +1,30 @@
 use image::GrayImage;
-use utils::{Quantizator, interpolate, traverse_level, GridU8, Metadata, gray};
+use interpolator::Interpolator;
+use quantizator::Quantizator;
+use utils::{gray, traverse_level, GridU8};
 
-pub struct EncoderGrayscale {}
-
-pub trait Encoder {
-    type Input;
-    type Output;
-
-    fn encode(&mut self, metadata: &Metadata, input: Self::Input) -> Self::Output;
+pub struct Encoder<I, Q> {
+    interpolator: I,
+    quantizator: Q,
+    scale_level: usize,
 }
 
-impl Encoder for EncoderGrayscale {
-    type Input = GrayImage;
-    type Output = GridU8;
+impl<I, Q> Encoder<I, Q>
+where
+    Q: Quantizator,
+    I: Interpolator,
+{
+    pub fn new(interpolator: I, quantizator: Q, scale_level: usize) -> Self {
+        Encoder {
+            quantizator,
+            interpolator,
+            scale_level,
+        }
+    }
 
-    fn encode(&mut self, metadata: &Metadata, mut input: Self::Input) -> Self::Output {
-        let quantizator = Quantizator::new(metadata.quantization_level);
+    pub fn encode(&mut self, mut input: GrayImage) -> GridU8 {
         let (width, height) = input.dimensions();
-        let levels = metadata.scale_level;
+        let levels = self.scale_level;
         let mut grid = GridU8::new();
         grid.resize(levels + 1, Vec::new());
 
@@ -31,21 +38,19 @@ impl Encoder for EncoderGrayscale {
         }
 
         for level in 0..levels {
-            let process_pixel = #[inline(always)] |column, line| {
-                let prediction = interpolate(
-                    levels,
-                    level + 1,
-                    (column, line),
-                    &input
-                );
+            let process_pixel = #[inline(always)]
+            |column, line| {
+                let prediction =
+                    self.interpolator
+                        .interpolate(levels, level + 1, (column, line), &input);
 
                 let actual_value = input.get_pixel(column, line).data[0];
                 let diff = actual_value.wrapping_sub(prediction);
-                let mut quanted_diff = quantizator.quantize(diff);
+                let mut quanted_diff = self.quantizator.quantize(diff);
 
                 let overflow = prediction.checked_add(quanted_diff).is_none();
                 let overflow_is_expected = prediction.checked_add(diff).is_none();
-                if  overflow != overflow_is_expected {
+                if overflow != overflow_is_expected {
                     quanted_diff = diff;
                 }
 

@@ -13,12 +13,14 @@ extern crate serde_derive;
 mod archive;
 mod decoder;
 mod encoder;
+pub mod interpolator;
+pub mod quantizator;
 mod utils;
 
 pub use self::archive::Archive;
-pub use self::decoder::{Decoder, DecoderGrayscale};
-pub use self::encoder::{Encoder, EncoderGrayscale};
-pub use self::utils::{Interpolator, Metadata, QuantizationLevel};
+pub use self::decoder::Decoder;
+pub use self::encoder::Encoder;
+pub use self::utils::{InterpolationType, Metadata, QuantizationLevel};
 
 #[cfg(test)]
 mod tests {
@@ -26,9 +28,11 @@ mod tests {
     use std::io;
 
     use archive::Archive;
-    use decoder::{Decoder, DecoderGrayscale};
-    use encoder::{Encoder, EncoderGrayscale};
-    use utils::{Interpolator, Metadata, QuantizationLevel};
+    use decoder::Decoder;
+    use encoder::Encoder;
+    use interpolator::Crossed;
+    use quantizator::Linear;
+    use utils::{InterpolationType, Metadata, QuantizationLevel};
 
     type Pixel = image::Luma<u8>;
     type Subpixel = <Pixel as image::Pixel>::Subpixel;
@@ -42,8 +46,8 @@ mod tests {
         quantizator: QuantizationLevel,
     ) -> (Metadata, GrayscaleBuffer) {
         let metadata = Metadata {
-            quantization_level: quantizator,
-            interpolator: Interpolator::Crossed,
+            quantization_level: QuantizationLevel::Lossless,
+            interpolation: InterpolationType::Crossed,
             width: width,
             height: height,
             scale_level: levels,
@@ -57,33 +61,37 @@ mod tests {
         (metadata, imgbuf)
     }
 
-    fn test_error(quantizator: QuantizationLevel) {
-        let (metadata, imgbuf) = get_test_image(8, 8, 3, quantizator);
+    fn test_error(quantization_level: QuantizationLevel) {
+        let levels = 3;
+        let (width, height) = (8, 8);
+        let (metadata, imgbuf) = get_test_image(width, height, levels, quantization_level);
 
-            for line in imgbuf.chunks(imgbuf.width() as usize) {
-                println!("{:2?}", line);
-            }
+        for line in imgbuf.chunks(imgbuf.width() as usize) {
+            println!("{:2?}", line);
+        }
 
-            let mut encoder = EncoderGrayscale {};
-            let grid = encoder.encode(&metadata, imgbuf.clone());
+        let quantizator = Linear::from(quantization_level);
+        let interpolator = Crossed;
+        let mut encoder = Encoder::new(interpolator, quantizator, levels);
+        let grid = encoder.encode(imgbuf.clone());
 
-            let mut decoder = DecoderGrayscale {};
-            let image = decoder.decode(&metadata, &grid);
+        let mut decoder = Decoder::new(Crossed);
+        let image = decoder.decode((width, height), &grid);
 
-            let line: String = ::std::iter::repeat('-')
-                .take(imgbuf.width() as usize * 4)
-                .collect();
-            println!("{}", line);
-            for line in image.chunks(image.width() as usize) {
-                println!("{:2?}", line);
-            }
-            let expected_error = quantizator.max_error();
-            for (x, y, pixel) in imgbuf.enumerate_pixels() {
-                let before = pixel.data[0] as i32;
-                let after = image[(x, y)].data[0] as i32;
-                let diff = (before - after).abs() as usize;
-                assert!(diff <= expected_error);
-            }
+        let line: String = ::std::iter::repeat('-')
+            .take(imgbuf.width() as usize * 4)
+            .collect();
+        println!("{}", line);
+        for line in image.chunks(image.width() as usize) {
+            println!("{:2?}", line);
+        }
+        let expected_error = quantization_level.max_error();
+        for (x, y, pixel) in imgbuf.enumerate_pixels() {
+            let before = pixel.data[0] as i32;
+            let after = image[(x, y)].data[0] as i32;
+            let diff = (before - after).abs() as usize;
+            assert!(diff <= expected_error);
+        }
     }
 
     #[test]
@@ -108,9 +116,12 @@ mod tests {
 
     #[test]
     fn serde() {
-        let (metadata, imgbuf) = get_test_image(8, 8, 3, QuantizationLevel::Lossless);
-        let mut encoder = EncoderGrayscale {};
-        let grid = encoder.encode(&metadata, imgbuf);
+        let levels = 3;
+        let (metadata, imgbuf) = get_test_image(8, 8, levels, QuantizationLevel::Lossless);
+        let interpolator = Crossed;
+        let quantizator = Linear::from(QuantizationLevel::Lossless);
+        let mut encoder = Encoder::new(interpolator, quantizator, levels);
+        let grid = encoder.encode(imgbuf);
         let archive = Archive { metadata, grid };
         let mut buffer = Vec::new();
         let res = archive.serialize_to_writer(&mut buffer);
