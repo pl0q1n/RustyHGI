@@ -19,13 +19,12 @@ pub enum QuantizationLevel {
 
 impl QuantizationLevel {
     pub fn max_error(&self) -> usize {
-        let error = match self {
+        match self {
             QuantizationLevel::Lossless => 0,
             QuantizationLevel::Low => 10,
             QuantizationLevel::Medium => 20,
             QuantizationLevel::High => 30,
-        };
-        return error;
+        }
     }
 }
 
