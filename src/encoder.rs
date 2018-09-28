@@ -58,7 +58,7 @@ where
         for level in 0..levels {
             let mut index = 0;
             let current_level = &mut grid[level + 1];
-
+            {
             let process_pixel = #[inline(always)]
             |column, line| {
                 let prediction =
@@ -82,6 +82,8 @@ where
             };
 
             traverse_level(level, levels, width, height, process_pixel);
+            }
+            debug_assert_eq!(current_level.len(), index);
         }
 
         grid
