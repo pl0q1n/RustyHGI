@@ -6,8 +6,8 @@ extern crate image;
 
 use image::GrayImage;
 
-use hgi::interpolator::{Crossed, InterpolationType};
-use hgi::quantizator::{Linear, QuantizationLevel};
+use hgi::interpolator::{self, Crossed, InterpolationType};
+use hgi::quantizator::{self, Linear, QuantizationLevel};
 use hgi::{Archive, Decoder, Encoder, Metadata};
 
 use criterion::{Benchmark, Criterion, Throughput};
@@ -31,6 +31,30 @@ fn get_test_image(width: u32, height: u32, levels: usize) -> (Metadata, GrayImag
 }
 
 fn benchmarks(c: &mut Criterion) {
+    c.bench(
+        "memory",
+        Benchmark::new("memory", |bencher| {
+            let v = vec![0u8; 1920 * 1080];
+            bencher.iter_with_large_drop(|| {
+                let mut mem: Vec<u8> = Vec::with_capacity(1920 * 1080);
+                unsafe { ::std::ptr::copy_nonoverlapping(v.as_ptr(), mem.as_mut_ptr(), v.len()) };
+                mem
+            });
+        }).throughput(Throughput::Bytes(1920 * 1080)),
+    );
+
+    c.bench(
+        "nop_encode",
+        Benchmark::new("nop_encode", |bencher| {
+            let levels = 4;
+            let (_metadata, image) = get_test_image(1920, 1080, levels);
+            let interpolator = interpolator::LeftTop;
+            let quantizator = quantizator::NoOp;
+            let mut encoder = Encoder::new(interpolator, quantizator, levels);
+            bencher.iter_with_large_setup(|| image.clone(), |image| drop(encoder.encode(image)));
+        }).throughput(Throughput::Bytes(1920 * 1080)),
+    );
+
     c.bench(
         "encode",
         Benchmark::new("encode", |bencher| {

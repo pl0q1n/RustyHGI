@@ -14,6 +14,25 @@ pub trait Quantizator : From<QuantizationLevel> {
     fn error(&self) -> u8;
 }
 
+pub struct NoOp;
+
+impl From<QuantizationLevel> for NoOp {
+    fn from(_: QuantizationLevel) -> Self {
+        NoOp
+    }
+}
+
+impl Quantizator for NoOp {
+    #[inline(always)]
+    fn quantize(&self, value: u8) -> u8 {
+        value
+    }
+
+    fn error(&self) -> u8 {
+        0
+    }
+}
+
 pub struct Linear {
     table: [u8; 256],
     error: u8
