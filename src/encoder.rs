@@ -28,19 +28,24 @@ where
         let mut grid = GridU8::new();
         grid.resize(levels + 1, Vec::new());
 
+        let level = 0;
+        let step: usize = 1 << levels;
+
         // preallocate grid
-        let mut previous_level_pixels = 0;
-        for (i, level) in grid.iter_mut().enumerate() {
-            let step = 1 << (levels - i);
-            let npixels = (width / step + 1) * (height / step + 1) - previous_level_pixels;
-            level.reserve(npixels as usize);
-            unsafe { level.set_len(npixels as usize) };
-            previous_level_pixels = npixels;
+        let mut previous_level_pixels = ((width + step as u32 - 1) / step as u32) * ((height + step as u32 - 1) / step as u32);
+        grid[level].reserve(previous_level_pixels as usize);
+        unsafe { grid[level].set_len(previous_level_pixels as usize) };
+
+        for level in 0..levels {
+            let step = 1 << (levels - level - 1);
+            let n = (width / step) * (height / step);
+            let npixels = n - previous_level_pixels;
+            grid[level + 1].reserve(npixels as usize);
+            unsafe { grid[level + 1].set_len(npixels as usize) };
+            previous_level_pixels = n;
         }
 
         // initialize first level with pixel values
-        let level = 0;
-        let step = 1 << levels;
         let mut index = 0;
         for line in (0..height).step_by(step) {
             for column in (0..width).step_by(step) {
@@ -52,6 +57,8 @@ where
 
         for level in 0..levels {
             let mut index = 0;
+            let current_level = &mut grid[level + 1];
+
             let process_pixel = #[inline(always)]
             |column, line| {
                 let prediction =
@@ -68,7 +75,7 @@ where
                     quanted_diff = diff;
                 }
 
-                grid[level + 1][index] = quanted_diff;
+                current_level[index] = quanted_diff;
                 index += 1;
                 let pixel = gray(prediction.wrapping_add(quanted_diff));
                 input.put_pixel(column, line, pixel);
