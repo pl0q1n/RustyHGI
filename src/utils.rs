@@ -18,18 +18,24 @@ where
     let step = 1 << e;
     let substep = start;
 
-    for line in (0..height).step_by(step) {
-        for column in (start..width).step_by(step) {
-            f(column, line);
+    let mut line = 0;
+    while line < height {
+        let mut column = start;
+        while column < width {
+            f(column as u32, line as u32);
+            column += step;
         }
 
-        let line = line + substep;
+        line += substep;
         if line >= height {
             break;
         }
 
-        for column in  (0..width).step_by(substep as usize) {
-            f(column, line);
+        let mut column = 0;
+        while column < width {
+            f(column as u32, line as u32);
+            column += substep;
         }
+        line += substep;
     }
 }
