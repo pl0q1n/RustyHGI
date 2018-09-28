@@ -43,7 +43,7 @@ mod tests {
 
     fn test_error(quantization_level: QuantizationLevel) {
         let levels = 3;
-        let (width, height) = (8, 8);
+        let (width, height) = (12, 8);
         let image = get_test_image(width, height);
 
         for line in image.chunks(image.width() as usize) {
