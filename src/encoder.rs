@@ -46,25 +46,27 @@ where
         grid
     }
 
-    pub fn encode(&mut self, mut input: GrayImage) -> GridU8 {
-        let (width, height) = input.dimensions();
-        let levels = self.scale_level;
-        let mut grid = self.create_grid((width, height));
-
-        {
+    fn initialize_first_level(&self, image: &GrayImage, grid: &mut GridU8) {
+        let (width, height) = image.dimensions();
         let first_level = &mut grid[0];
-        let step: usize = 1 << levels;
+        let step: usize = 1 << self.scale_level;
 
         // initialize first level with pixel values
         let mut index = 0;
         for line in (0..height).step_by(step) {
             for column in (0..width).step_by(step) {
-                let pixel = unsafe { input.unsafe_get_pixel(column, line).data[0] };
+                let pixel = unsafe { image.unsafe_get_pixel(column, line).data[0] };
                 first_level[index] = pixel;
                 index += 1;
             }
         }
-        }
+    }
+
+    pub fn encode(&mut self, mut input: GrayImage) -> GridU8 {
+        let (width, height) = input.dimensions();
+        let levels = self.scale_level;
+        let mut grid = self.create_grid((width, height));
+        self.initialize_first_level(&input, &mut grid);
 
         for level in 0..levels {
             let mut index = 0;
