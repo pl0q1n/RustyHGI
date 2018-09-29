@@ -29,7 +29,7 @@ where
             }
         }
 
-        let chunk_size = 256;
+        let chunk_size = 128;
         for height_start in (0..height).step_by(chunk_size) {
             for width_start in (0..width).step_by(chunk_size) {
                 for level in 0..levels {

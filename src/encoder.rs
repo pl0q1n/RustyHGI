@@ -42,7 +42,7 @@ where
         let mut grid = Grid::new(width as usize, height as usize);
         self.initialize_first_level(&input, &mut grid);
 
-        let chunk_size = 256;
+        let chunk_size = 128;
         for height_start in (0..height).step_by(chunk_size) {
             for width_start in (0..width).step_by(chunk_size) {
                 for level in 0..levels {
