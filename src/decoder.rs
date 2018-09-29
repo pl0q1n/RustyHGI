@@ -29,22 +29,29 @@ where
             }
         }
 
-        for level in 0..levels {
-            let process_pixel = #[inline(always)]
-            |column, line| {
-                let diff = unsafe { grid.get(column, line) };
+        let chunk_size = 256;
+        for height_start in (0..height).step_by(chunk_size) {
+            for width_start in (0..width).step_by(chunk_size) {
+                for level in 0..levels {
+                    let process_pixel = #[inline(always)]
+                    |column, line| {
+                        let diff = unsafe { grid.get(column, line) };
 
-                let prediction =
-                    self.interpolator
-                        .interpolate(levels, level + 1, (column, line), &image);
+                        let prediction =
+                            self.interpolator
+                                .interpolate(levels, level + 1, (column, line), &image);
 
-                let pixel = gray(prediction.wrapping_add(diff));
-                unsafe { image.unsafe_put_pixel(column, line, pixel) };
-            };
+                        let pixel = gray(prediction.wrapping_add(diff));
+                        unsafe { image.unsafe_put_pixel(column, line, pixel) };
+                    };
 
-            traverse_level(level, levels, width, height, process_pixel);
+                    use std::cmp::min;
+                    let width_end = min(width_start + chunk_size as u32, width);
+                    let height_end = min(height_start + chunk_size as u32, height);
+                    traverse_level(level, levels, width_start, width_end, height_start, height_end, process_pixel);                
+                }
+            }
         }
-
         image
     }
 }
