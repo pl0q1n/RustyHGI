@@ -84,7 +84,7 @@ fn benchmarks(c: &mut Criterion) {
             let grid = encoder.encode(image);
             let mut decoder = Decoder::new(Crossed);
 
-            bencher.iter_with_large_drop(|| decoder.decode((width, height), &grid));
+            bencher.iter_with_large_drop(|| decoder.decode((width, height), levels, &grid));
         }).throughput(Throughput::Bytes(size)),
     );
 

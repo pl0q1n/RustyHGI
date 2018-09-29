@@ -1,8 +1,5 @@
 use image::Luma;
 
-pub type Level = Vec<u8>;
-pub type GridU8 = Vec<Level>;
-
 #[inline(always)]
 pub fn gray(value: u8) -> Luma<u8> {
     Luma { data: [value] }

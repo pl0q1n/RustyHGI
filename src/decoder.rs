@@ -1,6 +1,7 @@
 use image::{GrayImage, GenericImage};
 use interpolator::Interpolator;
-use utils::{gray, traverse_level, Level};
+use utils::{gray, traverse_level};
+use grid::Grid;
 
 pub struct Decoder<I> {
     interpolator: I,
@@ -16,29 +17,22 @@ where
         }
     }
 
-    pub fn decode(&mut self, (width, height): (u32, u32), grid: &[Level]) -> GrayImage {
+    pub fn decode(&mut self, (width, height): (u32, u32), levels: usize, grid: &Grid) -> GrayImage {
         let mut image = GrayImage::new(width, height);
-        let levels = grid.len() - 1;
 
-        let mut index = 0;
-        let first_level = &grid[0];
+        // initialize first level
         let step = 1 << levels;
         for line in (0..height).step_by(step) {
             for column in (0..width).step_by(step) {
-                let value = first_level[index];
+                let value = unsafe { grid.get(column, line) };
                 unsafe { image.unsafe_put_pixel(column, line, gray(value)) };
-                index += 1;
             }
         }
 
         for level in 0..levels {
-            let mut index = 0;
-            let current_level = &grid[level + 1];
-
             let process_pixel = #[inline(always)]
             |column, line| {
-                let diff = current_level[index];
-                index += 1;
+                let diff = unsafe { grid.get(column, line) };
 
                 let prediction =
                     self.interpolator

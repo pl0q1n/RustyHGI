@@ -16,6 +16,7 @@ mod encoder;
 pub mod interpolator;
 pub mod quantizator;
 mod utils;
+mod grid;
 
 pub use self::archive::{Archive, Metadata};
 pub use self::decoder::Decoder;
@@ -57,7 +58,7 @@ mod tests {
         let grid = encoder.encode(image.clone());
 
         let mut decoder = Decoder::new(Crossed);
-        let image = decoder.decode((width, height), &grid);
+        let image = decoder.decode((width, height),levels, &grid);
 
         let line: String = ::std::iter::repeat('-')
             .take(image.width() as usize * 4)
