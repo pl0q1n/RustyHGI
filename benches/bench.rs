@@ -52,8 +52,8 @@ fn benchmarks(c: &mut Criterion) {
     );
 
     c.bench(
-        "nop_encode",
-        Benchmark::new("nop_encode", move |bencher| {
+        "left_top_nop_encode",
+        Benchmark::new("left_top_nop_encode", move |bencher| {
             let (_metadata, image) = get_test_image(width, height, levels);
             let interpolator = interpolator::LeftTop;
             let quantizator = quantizator::NoOp;
@@ -63,8 +63,30 @@ fn benchmarks(c: &mut Criterion) {
     );
 
     c.bench(
-        "encode",
-        Benchmark::new("encode", move |bencher| {
+        "left_top_quanted_encode",
+        Benchmark::new("left_top_quanted_encode", move |bencher| {
+            let (_metadata, image) = get_test_image(width, height, levels);
+            let interpolator = interpolator::LeftTop;
+            let quantizator = Linear::from(QuantizationLevel::Lossless);
+            let mut encoder = Encoder::new(interpolator, quantizator, levels);
+            bencher.iter_with_large_setup(|| image.clone(), |image| drop(encoder.encode(image)));
+        }).throughput(Throughput::Bytes(size)),
+    );
+
+    c.bench(
+        "crossed_nop_encode",
+        Benchmark::new("crossed_nop_encode", move |bencher| {
+            let (_metadata, image) = get_test_image(width, height, levels);
+            let interpolator = Crossed;
+            let quantizator = quantizator::NoOp;
+            let mut encoder = Encoder::new(interpolator, quantizator, levels);
+            bencher.iter_with_large_setup(|| image.clone(), |image| drop(encoder.encode(image)));
+        }).throughput(Throughput::Bytes(size)),
+    );
+
+    c.bench(
+        "crossed_quanted_encode",
+        Benchmark::new("crossed_quanted_encode", move |bencher| {
             let (_metadata, image) = get_test_image(width, height, levels);
             let interpolator = Crossed;
             let quantizator = Linear::from(QuantizationLevel::Lossless);
