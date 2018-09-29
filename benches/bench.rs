@@ -42,12 +42,11 @@ fn benchmarks(c: &mut Criterion) {
             for (i, x) in v.iter_mut().enumerate() {
                 *x = i as u8;
             }
+            let mut mem: Vec<u8> = Vec::with_capacity(size as usize);
+            unsafe { mem.set_len(size as usize) };
 
             bencher.iter(|| {
-                let mut mem: Vec<u8> = Vec::with_capacity(size as usize);
-                unsafe { mem.set_len(size as usize) };
                 unsafe { ::std::ptr::copy_nonoverlapping(v.as_ptr(), mem.as_mut_ptr(), v.len()) };
-                mem
             });
         }).throughput(Throughput::Bytes(size)),
     );
