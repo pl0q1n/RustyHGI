@@ -1,38 +1,38 @@
 use image::Luma;
 
-pub type Level = Vec<u8>;
-pub type GridU8 = Vec<Level>;
-
 #[inline(always)]
 pub fn gray(value: u8) -> Luma<u8> {
     Luma { data: [value] }
 }
 
+// x is column
+// y is line
+
 #[inline]
-pub fn traverse_level<F>(level: usize, levels: usize, width: u32, height: u32, mut f: F)
+pub fn traverse_level<F>(level: usize, levels: usize, x1: u32, x2: u32, y1: u32, y2: u32, mut f: F)
 where
     F: FnMut(u32, u32),
 {
     let e = levels - level;
-    let start = 1 << (e - 1);
     let step = 1 << e;
-    let substep = start;
+    let substep = 1 << (e - 1);
+    let start = x1 + substep;
 
-    let mut line = 0;
-    while line < height {
+    let mut line = y1;
+    while line < y2 {
         let mut column = start;
-        while column < width {
+        while column < x2 {
             f(column as u32, line as u32);
             column += step;
         }
 
         line += substep;
-        if line >= height {
+        if line >= y2 {
             break;
         }
 
-        let mut column = 0;
-        while column < width {
+        let mut column = x1;
+        while column < x2 {
             f(column as u32, line as u32);
             column += substep;
         }

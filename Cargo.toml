@@ -17,7 +17,8 @@ structopt = "0.2.10"
 # lto = true
 # debug = true
 
-# [profile.bench]
+[profile.bench]
+debug = true
 # lto = true
 
 [dev-dependencies]

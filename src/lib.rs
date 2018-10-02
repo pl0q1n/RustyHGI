@@ -16,6 +16,7 @@ mod encoder;
 pub mod interpolator;
 pub mod quantizator;
 mod utils;
+mod grid;
 
 pub use self::archive::{Archive, Metadata};
 pub use self::decoder::Decoder;
@@ -43,7 +44,7 @@ mod tests {
 
     fn test_error(quantization_level: QuantizationLevel) {
         let levels = 3;
-        let (width, height) = (8, 8);
+        let (width, height) = (12, 8);
         let image = get_test_image(width, height);
 
         for line in image.chunks(image.width() as usize) {
@@ -57,7 +58,7 @@ mod tests {
         let grid = encoder.encode(image.clone());
 
         let mut decoder = Decoder::new(Crossed);
-        let image = decoder.decode((width, height), &grid);
+        let image = decoder.decode((width, height),levels, &grid);
 
         let line: String = ::std::iter::repeat('-')
             .take(image.width() as usize * 4)

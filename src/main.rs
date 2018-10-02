@@ -24,6 +24,7 @@ mod decoder;
 mod encoder;
 mod options;
 mod utils;
+mod grid;
 mod quantizator;
 mod interpolator;
 
@@ -31,10 +32,10 @@ use archive::{Archive, Metadata};
 use interpolator::InterpolationType;
 use decoder::Decoder;
 use encoder::Encoder;
+use grid::Grid;
 use interpolator::Crossed;
 use quantizator::Linear;
 use options::{IO, EncodingOptions, Opts};
-use utils::GridU8;
 
 
 fn encode(io: &IO, opts: &EncodingOptions) -> Result<(), Box<Error>> {
@@ -61,10 +62,10 @@ fn encode(io: &IO, opts: &EncodingOptions) -> Result<(), Box<Error>> {
 
 fn decode(io: &IO) -> Result<(), Box<Error>> {
     let mut input = BufReader::new(File::open(&io.input)?);
-    let archive = Archive::<GridU8>::deserialize_from_reader(&mut input)?;
+    let archive = Archive::<Grid>::deserialize_from_reader(&mut input)?;
     let dimensions = (archive.metadata.width, archive.metadata.height);
     let mut decoder = Decoder::new(Crossed);
-    let image = decoder.decode(dimensions, &archive.grid);
+    let image = decoder.decode(dimensions, archive.metadata.scale_level, &archive.grid);
     image.save(&io.output)?;
     Ok(())
 }
@@ -78,7 +79,7 @@ fn test(input: &Path, suffix: &str, opts: &EncodingOptions) -> Result<(), Box<Er
     let grid = encoder.encode(image_before.clone());
 
     let mut decoder = Decoder::new(Crossed);
-    let image_after = decoder.decode(image_before.dimensions(), &grid);
+    let image_after = decoder.decode(image_before.dimensions(), opts.level, &grid);
 
     let mut sd = 0usize;
     for (x, y, before) in image_before.enumerate_pixels() {

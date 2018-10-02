@@ -1,6 +1,7 @@
-use image::GrayImage;
+use grid::Grid;
+use image::{GenericImage, GrayImage};
 use interpolator::Interpolator;
-use utils::{gray, traverse_level, Level};
+use utils::{gray, traverse_level};
 
 pub struct Decoder<I> {
     interpolator: I,
@@ -11,44 +12,36 @@ where
     I: Interpolator,
 {
     pub fn new(interpolator: I) -> Self {
-        Decoder {
-            interpolator
-        }
+        Decoder { interpolator }
     }
 
-    pub fn decode(&mut self, (width, height): (u32, u32), grid: &[Level]) -> GrayImage {
+    pub fn decode(&mut self, (width, height): (u32, u32), levels: usize, grid: &Grid) -> GrayImage {
         let mut image = GrayImage::new(width, height);
-        let levels = grid.len() - 1;
 
-        let mut index = 0;
-        let level = 0;
+        // initialize first level
         let step = 1 << levels;
         for line in (0..height).step_by(step) {
             for column in (0..width).step_by(step) {
-                let value = grid[level][index];
-                image.put_pixel(column, line, gray(value));
-                index += 1;
+                let value = unsafe { grid.get(column, line) };
+                unsafe { image.unsafe_put_pixel(column, line, gray(value)) };
             }
         }
 
         for level in 0..levels {
-            let mut index = 0;
-
             let process_pixel = #[inline(always)]
             |column, line| {
-                let diff = grid[level + 1][index];
+                let diff = unsafe { grid.get(column, line) };
+
                 let prediction =
                     self.interpolator
                         .interpolate(levels, level + 1, (column, line), &image);
 
                 let pixel = gray(prediction.wrapping_add(diff));
-                image.put_pixel(column, line, pixel);
-                index += 1;
+                unsafe { image.unsafe_put_pixel(column, line, pixel) };
             };
 
-            traverse_level(level, levels, width, height, process_pixel);
+            traverse_level(level, levels, 0, width, 0, height, process_pixel);
         }
-
         image
     }
 }

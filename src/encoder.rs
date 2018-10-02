@@ -1,7 +1,8 @@
-use image::GrayImage;
+use grid::Grid;
+use image::{GenericImage, GrayImage};
 use interpolator::Interpolator;
 use quantizator::Quantizator;
-use utils::{gray, traverse_level, GridU8};
+use utils::{gray, traverse_level};
 
 pub struct Encoder<I, Q> {
     interpolator: I,
@@ -22,20 +23,24 @@ where
         }
     }
 
-    pub fn encode(&mut self, mut input: GrayImage) -> GridU8 {
-        let (width, height) = input.dimensions();
-        let levels = self.scale_level;
-        let mut grid = GridU8::new();
-        grid.resize(levels + 1, Vec::new());
+    fn initialize_first_level(&self, image: &GrayImage, grid: &mut Grid) {
+        let (width, height) = image.dimensions();
+        let step: usize = 1 << self.scale_level;
 
-        let level = 0;
-        let step = 1 << levels;
+        // initialize first level with pixel values
         for line in (0..height).step_by(step) {
             for column in (0..width).step_by(step) {
-                let pixel = input.get_pixel(column, line).data[0];
-                grid[level].push(pixel);
+                let pixel = unsafe { image.unsafe_get_pixel(column, line).data[0] };
+                unsafe { grid.set((column, line), pixel) };
             }
         }
+    }
+
+    pub fn encode(&mut self, mut input: GrayImage) -> Grid {
+        let (width, height) = input.dimensions();
+        let levels = self.scale_level;
+        let mut grid = Grid::new(width as usize, height as usize);
+        self.initialize_first_level(&input, &mut grid);
 
         for level in 0..levels {
             let process_pixel = #[inline(always)]
@@ -44,7 +49,7 @@ where
                     self.interpolator
                         .interpolate(levels, level + 1, (column, line), &input);
 
-                let actual_value = input.get_pixel(column, line).data[0];
+                let actual_value = unsafe { input.unsafe_get_pixel(column, line).data[0] };
                 let diff = actual_value.wrapping_sub(prediction);
                 let mut quanted_diff = self.quantizator.quantize(diff);
 
@@ -54,12 +59,12 @@ where
                     quanted_diff = diff;
                 }
 
-                grid[level + 1].push(quanted_diff);
+                unsafe { grid.set((column, line), quanted_diff) };
                 let pixel = gray(prediction.wrapping_add(quanted_diff));
-                input.put_pixel(column, line, pixel);
+                unsafe { input.unsafe_put_pixel(column, line, pixel) };
             };
 
-            traverse_level(level, levels, width, height, process_pixel);
+            traverse_level(level, levels, 0, width, 0, height, process_pixel);
         }
 
         grid
