@@ -25,4 +25,10 @@ impl Grid {
     pub unsafe fn get(&self, column: u32, line: u32) -> u8 {
         *self.buffer.get_unchecked(line as usize * self.width + column as usize)
     }
+
+    pub fn print(&self) {
+        for value in self.buffer.iter() {
+            print!("{} ", value);
+        }
+    }
 }
